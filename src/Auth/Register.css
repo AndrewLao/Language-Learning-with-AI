@@ -1,0 +1,37 @@
+.register-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    background-color: #2B4052;
+    color: white;
+    font-size: 0.9rem;
+}
+
+.register-form-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1em;
+    background-color: #031C30;
+    color: white;
+    width: 50%;
+    height: 60%;
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+
+.register-form-wrapper button {
+    margin-top: 1em;
+}
+
+.register-form-wrapper input {
+    font-size: 1.2em;
+    border-radius: 5px;
+    background-color: #344858;
+    color: white;
+}
