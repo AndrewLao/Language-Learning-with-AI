@@ -1,0 +1,44 @@
+.vertical-navbar {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  background-color: #031D31;
+  padding: 1rem;
+  position: fixed;
+  height: 100%;
+  top: 0;
+  left: 0;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem; /* Space between logo and navigation links */
+}
+
+.logo {
+  width: 40px; /* Set the size of the logo */
+  height: 40px; /* Maintain aspect ratio */
+  margin-right: 10px; /* Space between logo and name */
+}
+
+.company-name {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.vertical-navbar a {
+  color: white;
+  text-decoration: none;
+  padding: 1rem;
+  font-weight: bold;
+  margin: 10px 0;
+  transition: background-color 0.3s ease;
+}
+
+.vertical-navbar a:hover {
+  background-color: #555;
+}

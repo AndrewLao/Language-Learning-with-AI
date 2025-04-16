@@ -1,0 +1,39 @@
+/* App.css */
+
+.app-container {
+  display: flex;
+  height: 100vh;
+}
+
+.navbar {
+  width: 200px;
+  background-color: #333;
+  color: white;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.main-area {
+  margin-left: 200px; /* Same as .navbar width */
+  width: calc(100% - 200px);
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  height: 60px;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.main-content {
+  padding: 1.5rem;
+  flex: 1;
+  overflow-y: auto;
+}
