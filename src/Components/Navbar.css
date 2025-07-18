@@ -5,8 +5,8 @@
   background-color: #031D31;
   padding: 1rem;
   position: fixed;
-  height: 100%;
-  top: 0;
+  height: calc(100% - 3em);
+  top: calc(3em);
   left: 0;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
 }

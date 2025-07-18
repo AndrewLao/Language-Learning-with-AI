@@ -17,17 +17,13 @@ const Navbar = () => {
   return (
     <nav className="vertical-navbar">
       <div className="logo-section">
-        <img src="/logo.png" alt="Company Logo" className="logo" />
-        <h2 className="company-name">Autonomous Shipping</h2>
+        <h2 className="company-name">LLAI</h2>
       </div>
-
       <Link to="/">Dashboard</Link>
-      <Link to="/scheduling">Scheduling</Link>
-      <Link to="/monitoring">Monitoring</Link>
-      <Link to="/simulation">Simulation</Link>
-      <Link to="/alerts">Alerts</Link>
-      <Link to="/mission-planner">Mission Planner</Link>
-
+      <Link to="/learn">Learn</Link>
+      <Link to="/write">Write</Link>
+      <Link to="/profile">Profile</Link>
+      <br />
       <button onClick={handleLogout}>Logout</button>
 
     </nav>

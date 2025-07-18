@@ -1,0 +1,14 @@
+.learn-container {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    min-height: 100vh;
+    width: 100vw;
+    box-sizing: border-box;
+    background-color: #667A8A;
+    color: white;
+}
+
+.learn-content {
+    grid-column: 2;
+    padding: 2rem;
+}
