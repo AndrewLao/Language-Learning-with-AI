@@ -1,0 +1,13 @@
+.banner-container {
+    width: 100vw;
+    height: 4em;
+    background-color: #031D31;
+    color: white;
+    display: flex;
+    align-items: center;
+    padding-left: 1em;
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100; }
