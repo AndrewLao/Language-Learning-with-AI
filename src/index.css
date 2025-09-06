@@ -31,6 +31,9 @@ body {
   padding: 0;
   background-color: #667A8A;
   overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #5d6f88 #213547;
 }
 
 h1 {
@@ -51,7 +54,8 @@ button {
 }
 
 button:hover {
-  border-color: #646cff;
+  background-color: #646cff;
+  color: white;
 }
 
 button:focus,

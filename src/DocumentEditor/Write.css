@@ -1,14 +1,232 @@
-.write-container {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    min-height: 100vh;
-    width: 100vw;
-    box-sizing: border-box;
+.write-editor-container {
+    display: flex;
+    height: calc(100vh - 4em);
+    width: calc(100vw - 200px);
     background-color: #667A8A;
     color: white;
+    box-sizing: border-box;
+    padding-top: 0;
+    margin-left: 225px;
+    margin-top: 4em;
+    overflow: hidden;
 }
 
-.write-content {
-    grid-column: 2;
-    padding: 2rem;
+.writing-list {
+    width: 16.25em;
+    min-width: 11.25em;
+    max-width: 20em;
+    background: #031D31;
+    border-right: 0.125em solid #213547;
+    padding: 2em 1em 1em 2em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    height: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #213547 #213547;
+}
+
+.writing-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1em;
+}
+
+.writing-list-header h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 1.2em;
+}
+
+.writing-list-actions {
+    display: flex;
+    gap: 0.1em;
+}
+
+.writing-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #213547;
+    border-radius: 0.5em;
+    padding: 0.75em 1em;
+    margin-bottom: 0.5em;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 1em;
+}
+
+.writing-list-item.selected,
+.writing-list-item:hover {
+    background: #646cff;
+    color: #fff;
+}
+
+.writing-title {
+    font-weight: bold;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.writing-date {
+    font-size: 0.9em;
+    opacity: 0.7;
+    margin-left: 1em;
+    white-space: nowrap;
+}
+
+.writing-editor {
+    flex: 1.75 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 2em 1em;
+    background: #213547;
+
+
+}
+
+.editor-placeholder {
+    width: 100%;
+    min-height: 60vh;
+    background: #fff;
+    color: #213547;
+    border-radius: 0.5em;
+    box-shadow: 0 0.125em 0.5em rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    padding: 2em;
+}
+
+.writing-advice {
+    width: 18em;
+    min-width: 11.25em;
+    max-width: 25em;
+    background: #031D31;
+    border-left: 0.125em solid #213547;
+    padding: 2em 1em 1em 1em;
+    margin-right: 1.5em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    height: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #213547 #213547;
+}
+
+.writing-advice h3 {
+    margin-bottom: 1em;
+    color: #a5b4fc;
+}
+
+.feedback-entry {
+    margin-bottom: 1em;
+    border-radius: 0.5em;
+    background: #334155;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.feedback-title {
+    width: 100%;
+    background: none;
+    border: none;
+    color: #a5b4fc;
+    font-size: 1em;
+    font-weight: bold;
+    text-align: left;
+    padding: 0.75em 0.5em;
+    cursor: pointer;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.feedback-title:hover {
+    background: #213547;
+}
+
+.feedback-details {
+    padding: 0.75em 1.5em 1em 1.5em;
+    color: #fff;
+    font-size: 0.98em;
+    background: #213547;
+    border-radius: 0 0 0.5em 0.5em;
+    border-top: 1px solid #42506a;
+}
+
+.feedback-arrow {
+    float: right;
+    font-weight: bold;
+    transition: transform 0.2s;
+}
+
+.feedback-arrow.expanded {
+    transform: rotate(90deg);
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    color: #a5b4fc;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 0.2em 0.4em;
+    border-radius: 0.3em;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.icon-btn:hover,
+.icon-btn:focus {
+    background: #213547;
+    color: #fff;
+}
+
+.icon-tooltip {
+    position: absolute;
+    top: 2em;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #213547;
+    color: #fff;
+    padding: 0.3em 0.8em;
+    border-radius: 0.4em;
+    font-size: 0.75em;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    pointer-events: none;
+}
+
+@media (max-width: 75em) {
+
+    .writing-advice {
+        display: none;
+    }
+
+    .writing-editor {
+        flex: 3 1 0;
+    }
+}
+
+@media (max-width: 56.25em) {
+
+    .writing-list {
+        display: none;
+    }
+
+    .writing-editor {
+        flex: 1 1 0;
+        padding: 1em;
+    }
 }

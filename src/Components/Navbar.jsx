@@ -1,8 +1,9 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './Navbar.css';
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     // Clear session tokens
@@ -14,15 +15,27 @@ const Navbar = () => {
     navigate('/login');
   };
 
+  const navLinks = [
+    { to: "/", label: "Dashboard" },
+    { to: "/learn", label: "Learn" },
+    { to: "/write", label: "Write" },
+    { to: "/profile", label: "Profile" },
+  ];
+
   return (
     <nav className="vertical-navbar">
       <div className="logo-section">
         <h2 className="company-name">LLAI</h2>
       </div>
-      <Link to="/">Dashboard</Link>
-      <Link to="/learn">Learn</Link>
-      <Link to="/write">Write</Link>
-      <Link to="/profile">Profile</Link>
+      {navLinks.map(link => (
+        <Link
+          key={link.to}
+          to={link.to}
+          className={location.pathname === link.to ? "active" : ""}
+        >
+          {link.label}
+        </Link>
+      ))}
       <br />
       <button onClick={handleLogout}>Logout</button>
 

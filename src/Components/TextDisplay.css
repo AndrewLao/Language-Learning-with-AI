@@ -1,0 +1,57 @@
+.chat-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    padding: 1em;
+    overflow-y: auto;
+    max-height: 100vh;
+    background-color: #031D31;
+    border-radius: 1em;
+    flex: 1 1 auto;
+    max-height: 100%;
+    overflow: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.text-display-container {
+    background: #031D31;
+    color: #fff;
+    border-radius: 8px;
+    border: 1px solid #213547;
+    padding-left: 1.5em;
+    padding-right: 1.5em;
+    margin: 0;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+}
+
+.text-display-container.user {
+    margin-left: auto;
+    background: #14532d;
+    color: #d1fae5;
+}
+
+.text-display-container.assistant {
+    margin-right: auto;
+    background: #1e293b;
+    color: #e2e8f0;
+}
+
+.speaker-label {
+    display: block;
+    font-size: 0.75em;
+    font-weight: normal;
+    opacity: 0.5;
+    margin-bottom: 0.1em;
+    text-align: left;
+    letter-spacing: 0.03em;
+}
+
+.text-display-container.user .speaker-label {
+    text-align: right;
+}
