@@ -40,5 +40,11 @@
 }
 
 .vertical-navbar a:hover {
-  background-color: #555;
+  background-color: #334155;
+}
+
+
+.vertical-navbar a.active {
+  background-color: #334155;
+  color: #fff;
 }

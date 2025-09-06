@@ -1,14 +1,83 @@
 .profile-container {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    min-height: 100vh;
-    width: 100vw;
-    box-sizing: border-box;
-    background-color: #667A8A;
+    position: fixed;
+    top: 4em;
+    /* height of the banner */
+    left: 250px;
+    /* width of the navbar */
+    right: 0;
+    bottom: 0;
+    height: calc(100vh - 4em);
+    width: calc(100vw - 200px);
+    background: #667A8A;
     color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .profile-content {
-    grid-column: 2;
-    padding: 2rem;
+    background: #031D31;
+    border-radius: 1em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    max-width: 400px;
+    width: 100%;
+    margin: 2em auto;
+    padding: 2em 2em 3em 2em;
+    display: flex;
+    flex-direction: column;
+    gap: 2em;
+}
+
+.profile-row {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+}
+
+.profile-label {
+    width: 80px;
+    font-weight: bold;
+    color: #a5b4fc;
+}
+
+.profile-picture {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    object-fit: cover;
+}
+
+.profile-input {
+    flex: 1;
+    padding: 0.5em 1em;
+    border-radius: 8px;
+    border: 1px solid #213547;
+    font-size: 1em;
+    background: #334155;
+    color: #fff;
+}
+
+.profile-btn {
+    background: #646cff;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5em 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.profile-btn:hover {
+    background: #535bf2;
+}
+
+.profile-btn.delete {
+    background: #b91c1c;
+    margin-top: 2em;
+}
+
+.profile-btn.delete:hover {
+    background: #991b1b;
 }

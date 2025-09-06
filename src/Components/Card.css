@@ -1,0 +1,26 @@
+.card {
+    background-color: #031D31;
+    border: 2px solid #213547;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    color: white;
+    padding: 1.5em;
+    margin: 1em 0;
+    width: 20em;
+    height: 20em;
+}
+
+.card-center {
+    text-align: center;
+}
+
+.card-value-unit {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+}
+
+.card-unit {
+    margin-left: 0.5rem;
+}

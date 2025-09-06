@@ -1,0 +1,50 @@
+.textbox-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    margin-top: 1em;
+}
+
+.textbox-input {
+    width: 100%;
+    min-height: 2.5em;
+    max-height: 8em;
+    resize: none;
+    padding: 0.75em 1em;
+    font-size: 1.1em;
+    border-radius: 8px;
+    border: 1px solid #213547;
+    background-color: #213547;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+    overflow-y: auto;
+}
+
+.textbox-input:focus {
+    border-color: #646cff;
+    background-color: #2a3b4d;
+}
+
+.textbox-input::-webkit-scrollbar {
+    width: 8px;
+    background: #1d2a38;
+    border-radius: 8px;
+}
+
+.textbox-input::-webkit-scrollbar-thumb {
+    background: #1d2a38;
+    border-radius: 8px;
+}
+
+.textbox-input::-webkit-scrollbar-thumb:hover {
+    background: #1d2a38;
+}
+
+.textbox-input {
+    scrollbar-width: thin;
+    scrollbar-color: #1d2a38 #213547;
+}

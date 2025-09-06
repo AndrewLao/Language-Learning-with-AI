@@ -16,7 +16,7 @@
 }
 
 .main-area {
-  margin-left: 200px; /* Same as .navbar width */
+  margin-left: 200px;
   width: calc(100% - 200px);
   display: flex;
   flex-direction: column;
