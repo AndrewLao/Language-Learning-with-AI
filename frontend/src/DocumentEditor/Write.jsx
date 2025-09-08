@@ -1,5 +1,6 @@
 import "./Write.css";
 import { useState } from "react";
+import RichTextEditor from "../Components/RichTextEditor";
 
 // Example data
 const writings = [
@@ -139,11 +140,9 @@ const Write = () => {
                 ))}
             </aside>
 
-            {/* Center: Editor */}
             <main className="writing-editor">
                 <div className="editor-placeholder">
-                    {/* Replace this with your custom editor implementation */}
-                    <h3>Text Editor Area</h3>
+                    <RichTextEditor />
                 </div>
             </main>
 
