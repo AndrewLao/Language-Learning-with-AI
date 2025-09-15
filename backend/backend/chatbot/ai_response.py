@@ -39,4 +39,5 @@ def chat_with_llm(session_id, input):
     return output
 
 # print(chat_with_llm("test_session", "What is 4+4?"))
-print(chat_with_llm("test_session", "What math question I asked you?"))
+print(chat_with_llm("test_session", "Remember my name is Khai Nguyen"))
+# get_session_history("test_session").clear()
