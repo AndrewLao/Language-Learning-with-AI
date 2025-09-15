@@ -40,7 +40,7 @@ class AIResponseView(APIView):
         if serializer.is_valid():
             input_str = serializer.validated_data['input_string']
             client = OpenAI(
-                api_key="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"
+                api_key=""
             )
 
             response = client.responses.create(
