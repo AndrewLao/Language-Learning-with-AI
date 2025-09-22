@@ -26,7 +26,7 @@
     flex-direction: column;
     justify-content: flex-end;
     padding: 2em;
-    margin: 0em 0em 0em 0em;
+    margin: 0em 0em 0em 2em;
     overflow: hidden;
     gap: 1em;
 }
@@ -34,10 +34,6 @@
 @media (max-width: 900px) {
     .learn-content {
         flex-direction: column;
-    }
-
-    .assistant-list {
-        display: none !important;
     }
 
     .conversation-container {
@@ -49,9 +45,6 @@
 }
 
 @media (max-width: 600px) {
-    .assistant-list {
-        display: none !important;
-    }
 
     .conversation-container {
         padding: 0.5em;
