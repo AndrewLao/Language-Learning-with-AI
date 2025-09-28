@@ -15,6 +15,7 @@ llm = OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY")
     )
 
+# run by python manage.py runserver
 system = SystemMessagePromptTemplate.from_template("You are helpful assistant.")
 human = HumanMessagePromptTemplate.from_template("{input}")
 
