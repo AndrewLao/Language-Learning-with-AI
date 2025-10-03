@@ -1,20 +1,20 @@
 # Users API Reference
 
-## Profiles
+## Profiles Endpoints
 
-### Create Profile  
+### 1) Create Profile  
 **POST** `/users/profiles`  
 Creates a new user profile.
 
 | Type | Name | Location | Description |
 |------|------|----------|-------------|
-| Body | `UserProfileCreate` | JSON | `{ user_id, username, email, last_seen?, score_streak? }` |
+| Body | `UserProfileCreate` | JSON | `{ user_id, username, email, last_seen(opt), score_streak(opt) }` |
 
 Returns `UserProfile` with `last_seen` set to the current timestamp and `score_streak` initialized.
 
 ---
 
-### Get Profile  
+### Fetch Profile  
 **GET** `/users/profiles/{user_id}`  
 Fetches a profile and updates the streak if the last visit was within 24 hours.
 
