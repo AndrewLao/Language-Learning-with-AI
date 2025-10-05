@@ -29,6 +29,7 @@ def check(db_fs=Depends(get_db_fs)):
     docs = list(coll.find({}, {"_id": 0}))
     return {"status": "User API is up", "docs": docs}
 
+
 # (1) Create User profile
 @router.post("/profiles", response_model=UserProfile, status_code=201)
 def create_user_profile(payload: UserProfileCreate, db_fs=Depends(get_db_fs)):
@@ -47,37 +48,47 @@ def create_user_profile(payload: UserProfileCreate, db_fs=Depends(get_db_fs)):
     return profile
 
 # (2) Get User profile
-@router.get("/profiles/{email}", response_model=UserProfile)
-def get_user_profile(email: str, db_fs=Depends(get_db_fs)):
+@router.get("/profiles/{user_id}", response_model=UserProfile)
+def get_user_profile(user_id: str, db_fs=Depends(get_db_fs)):
     db, _ = db_fs
-    # Query by the email field using the path parameter value
-    profile = db.user_profiles.find_one({"email": email})
+    profile = db.user_profiles.find_one({"user_id": user_id}, {"_id": 0})
+
     if not profile:
         raise HTTPException(status_code=404, detail="User profile not found")
 
     now = datetime.utcnow()
     last_seen = profile.get("last_seen")
+    score_streak = profile.get("score_streak", 0)
 
+    # --- Streak logic ---
     if last_seen:
-        if now - last_seen <= timedelta(hours=24):
-            profile["score_streak"] = profile.get("score_streak", 0) + 1
-        else:
-            profile["score_streak"] = 0
-    else:
-        profile["score_streak"] = 0
+        days_since_last = (now.date() - last_seen.date()).days
 
-    # Update arg
+        if days_since_last == 0:
+            # User already logged in today → no change
+            pass
+        elif days_since_last == 1:
+            # Logged in consecutive day → increment streak
+            score_streak += 1
+        else:
+            # Missed one or more days → reset streak
+            score_streak = 0
+    else:
+        # First-time login → start streak
+        score_streak = 1
+
+    # --- Update DB with last_seen and new streak ---
     db.user_profiles.update_one(
-        {"email": email},
-        {"$set": {
-            "score_streak": profile["score_streak"],
-            "last_seen": now
-        }}
+        {"user_id": user_id},
+        {"$set": {"last_seen": now, "score_streak": score_streak}}
     )
 
-    # Return updated profile
+    # Reflect updated values in returned profile
     profile["last_seen"] = now
+    profile["score_streak"] = score_streak
+
     return UserProfile(**profile)
+
 
 # (3) edit User profile
 @router.patch("/profiles/{user_id}", response_model=UserProfile)
