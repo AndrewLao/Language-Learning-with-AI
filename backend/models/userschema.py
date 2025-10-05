@@ -3,6 +3,13 @@ import uuid
 from datetime import datetime
 from typing import List, Literal, Optional
 
+#Schema for simple chat message
+class SimpleMessageGet(BaseModel):
+    input_string: str
+
+class SimpleMessageResponse(BaseModel):
+    result: str
+
 #Schema for User Documents
 class UserDocument(BaseModel):
     doc_id: str = Field(default_factory=lambda: str(uuid.uuid4()))

@@ -1,0 +1,11 @@
+django==5.2.6
+djangorestframework==3.16.1
+pydantic==2.10.3
+langchain==0.3.27
+langchain_core==0.3.76
+langchain_openai==0.3.33
+langchain_community==0.3.29
+fastapi==0.118.0
+uvicorn==0.37.0
+pymongo==4.15.1
+dnspython==2.8.0
