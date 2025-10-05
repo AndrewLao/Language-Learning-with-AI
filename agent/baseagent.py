@@ -1,7 +1,7 @@
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
-from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import InMemorySaver
 
+from langchain_openai import ChatOpenAI
 
 class AgentState(dict):
     user_id: str
