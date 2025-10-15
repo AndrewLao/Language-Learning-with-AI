@@ -5,7 +5,6 @@ from langchain_openai import OpenAIEmbeddings
 
 import faiss
 from langchain_community.vectorstores import FAISS 
-from langchain_community.docstore.in_memory import InMemoryDocstore
 import os 
 load_dotenv()
 embeddings = OpenAIEmbeddings(model='text-embedding-ada-002', openai_api_key=os.environ.get("OPENAI_API_KEY"))
@@ -47,13 +46,7 @@ embedding_dimension = len(embeddings.embed_query(chunks[0].page_content))
 index = faiss.IndexFlatL2(embedding_dimension)
 # Building the vector store directly from document chunks (embeddings done internally)
 vector_store = FAISS.from_documents(chunks, embeddings)
-question = "Pronouns in Vietnamese"
-docs = vector_store.search(query=question, k=1, search_type="similarity")
-print(question)
-print(docs)
-question = "Advanced Pronouns in Vietnamese"
-docs = vector_store.search(query=question, k=1, search_type="similarity")
-print(question)
-print(docs)
-# Save the vector store locally to folder "faiss_pronoun_store"
 vector_store.save_local("vietnamese_store")
+
+def get_vector_store():
+    return FAISS.load_local("vietnamese_store", embeddings, allow_dangerous_deserialization=True)

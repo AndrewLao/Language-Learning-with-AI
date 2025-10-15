@@ -1,11 +1,7 @@
 from langchain_community.vectorstores import FAISS
 import os
 from langchain_openai import OpenAIEmbeddings
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough 
-from langchain_core.prompts import ChatPromptTemplate
-from langchain import hub
-from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, PromptTemplate
+from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 load_dotenv()
 embeddings = OpenAIEmbeddings(model='text-embedding-ada-002', openai_api_key=os.environ.get("OPENAI_API_KEY"))
