@@ -20,7 +20,7 @@ client = QdrantClient(
 
 # Load PDF files from directory
 pdfs = []
-for root, dirs, files in os.walk("Lesson plans"):
+for root, dirs, files in os.walk("Lesson plans/Test"):
     for file in files:
         if file.endswith(".pdf"):
             pdfs.append(os.path.join(root, file))
@@ -42,9 +42,9 @@ embedding_dimension = len(embeddings.embed_query(chunks[0].page_content))
 print(f"Embedding dimension: {embedding_dimension}")
 
 # Create Qdrant collection if not exists
-if not client.collection_exists("vietnamese_store"):
+if not client.collection_exists("vietnamese_test_store"):
     client.create_collection(
-        collection_name="vietnamese_store",
+        collection_name="vietnamese_test_store",
         vectors_config=VectorParams(size=embedding_dimension, distance=Distance.COSINE)
     )
 
@@ -59,15 +59,15 @@ points = [
 ]
 
 # Upsert points into the Qdrant collection
-client.upsert(collection_name="vietnamese_store", points=points)
+client.upsert(collection_name="vietnamese_test_store", points=points)
 
 print(f"Upserted {len(points)} points to Qdrant")
 
 # Example function to query the vector store by similarity
-def query_qdrant(query_text, top_k=5):
+def query_test_qdrant(query_text, top_k=5):
     query_vector = list(embeddings.embed_query(query_text))
     search_result = client.search(
-        collection_name="vietnamese_store",
+        collection_name="vietnamese_test_store",
         query_vector=query_vector,
         limit=top_k
     )
