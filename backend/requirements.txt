@@ -10,3 +10,4 @@ uvicorn==0.37.0
 pymongo==4.15.1
 dnspython==2.8.0
 pymupdf==1.26.5
+qdrant-client==1.15.1

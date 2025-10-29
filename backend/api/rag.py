@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from models.userschema import SimpleMessageGet, SimpleMessageResponse
-from backend.services.llm_chat import chat_with_llm
+from services.llm_chat import chat_with_llm
 router = APIRouter()
 
 @router.get("/ai-response", response_model=SimpleMessageResponse)
