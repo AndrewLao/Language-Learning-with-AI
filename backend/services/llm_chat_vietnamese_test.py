@@ -1,7 +1,8 @@
-from llm_chat import chat_with_llm, chat_with_llm_and_context, clear_session_history
-from rag_store_test_qdrant import query_test_qdrant
+from rag_store_qdrant import query_qdrant
+from llm_chat import chat_with_llm_and_context, clear_session_history
 
-results = query_test_qdrant("Vietnamese pronouns test", top_k=1)
+coll_name_test = "vietnamese_test_store"
+results = query_qdrant(coll_name_test, "Vietnamese pronouns test", top_k=1)
 text = ""
 for res in results:
     text = text + res.payload.get('text')
