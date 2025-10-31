@@ -10,8 +10,8 @@ from qdrant_client.http.models import PointStruct
 load_dotenv()
 # Initialize Qdrant client for your cloud instance
 client = QdrantClient(
-    url=os.environ.get("QDRANT_URL_KEY") ,  # Replace with your Qdrant Cloud URL
-    api_key=os.environ.get("QDRANT_API_KEY")       # Ensure your Qdrant API key is in env
+    url=os.environ.get("QDRANT_URL_KEY") , 
+    api_key=os.environ.get("QDRANT_API_KEY")      
 )
 
 # Initialize OpenAI embeddings
@@ -19,7 +19,6 @@ embeddings = OpenAIEmbeddings(model='text-embedding-ada-002', openai_api_key=os.
 
 # Lesson plans, vietnamese_store
 def upload_documents_to_qdrant(directory, coll_name):
-    print("dfdfdfdfdfrg")
     # Load PDF files from directory
     pdfs = []
     for root, dirs, files in os.walk(directory):
@@ -29,10 +28,24 @@ def upload_documents_to_qdrant(directory, coll_name):
 
     # Load documents from all PDFs
     docs = []
+    # Use a single lesson counter across all PDFs so lesson_index increments
+    # globally instead of resetting for each PDF. If you prefer per-PDF
+    # numbering, keep the counter inside the loop.
+    lesson_counter = 1
     for pdf in pdfs:
         print(pdf)
         loader = PyMuPDFLoader(pdf)
-        docs.extend(loader.load())
+
+        loaded_docs = loader.load()
+        # Add a tag to each loaded document's metadata before chunking
+        for doc in loaded_docs:
+            if doc.metadata is None:
+                doc.metadata = {}
+            doc.metadata["lesson_index"] = lesson_counter
+            print('test', lesson_counter, doc.metadata)
+            lesson_counter += 1
+        # extend with the modified loaded_docs (not a fresh loader.load() call)
+        docs.extend(loaded_docs)
 
     print(f"Loaded {len(docs)} documents")
 
@@ -56,7 +69,7 @@ def upload_documents_to_qdrant(directory, coll_name):
         PointStruct(
             id=idx,
             vector=list(embeddings.embed_query(chunk.page_content)),
-            payload={"text": chunk.page_content}
+            payload={"text": chunk.page_content, "lesson_index": chunk.metadata.get("lesson_index")}
         )
         for idx, chunk in enumerate(chunks)
     ]
@@ -77,5 +90,5 @@ def query_qdrant(coll_name, query_text, top_k=5):
     )
     return search_result
 
-# upload_documents_to_qdrant("Lesson plans", "vietnamese_store")
+upload_documents_to_qdrant("Lesson plans", "vietnamese_store_with_metadata")
 # upload_documents_to_qdrant("Test plans", "vietnamese_test_store")
