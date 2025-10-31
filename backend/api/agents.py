@@ -18,7 +18,7 @@ router = APIRouter()
 
 class AgentState(dict):
     user_id: str
-    thread_id: str
+    chat_id: str
     user_input: str
     memories: list
     history: list
@@ -96,6 +96,7 @@ class ManagerAgent:
         resp = self.llm.invoke(prompt)
         return {"response": resp.content}
 
+    # Aux step to filter incoming text
     def handle_user_prompt(self, state: AgentState):
         return {"user_input": state["user_input"]}
 
@@ -138,6 +139,7 @@ class ManagerAgent:
         # TODO Integrate metadata from documents to do lesson order
         # TODO Integrate mongo for lessons completed
         # TODO Make prompt here for RAG retrieval not based on user input
+        # TODO After the lessons are finished work on getting user documents loaded
         query_vector = list(self.embeddings.embed_query(query_text))
 
         search_result = self.db_client.search(
@@ -263,22 +265,22 @@ class ManagerAgent:
         return graph
 
     # Executes the agent pipeline
-    def invoke(self, user_id, thread_id, user_input):
+    def invoke(self, user_id, chat_id, user_input):
         state = AgentState(
             user_id=user_id,
-            thread_id=thread_id,
+            chat_id=chat_id,
             user_input=user_input,
             memories=[],
             docs=[],
             response="",
         )
-        return self.app.invoke(state, config={"configurable": {"thread_id": thread_id}})
+        return self.app.invoke(state, config={"configurable": {"chat_id": chat_id}})
 
 
 @router.post("/invoke-agent", response_model=SimpleMessageResponse)
 def invoke_agent(payload: SimpleMessageGet):
     agent = ManagerAgent()
-    state = agent.invoke("test_user_id", "test_thread", payload.input_string)
+    state = agent.invoke("test_user_id", "test_chat_id", payload.input_string)
     response_text = (
         state.get("response")
         if isinstance(state, dict)
