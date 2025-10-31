@@ -1,20 +1,15 @@
 from dotenv import load_dotenv
 from fastapi import APIRouter
-
+import json
 from langgraph.graph import StateGraph, END, START
-
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
-
 from models.userschema import SimpleMessageGet, SimpleMessageResponse
+import os
+from pymongo import MongoClient
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct
-
-from pymongo import MongoClient
-
 import uuid
-import os
-import json
 
 load_dotenv()
 
