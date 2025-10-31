@@ -1,29 +1,32 @@
+from dotenv import load_dotenv
 from fastapi import APIRouter
 
-from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph import StateGraph, END, START
 
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
 
 from models.userschema import SimpleMessageGet, SimpleMessageResponse
-import os
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import VectorParams, Distance
-# temporary only for testing remove all traces of UUID in prod once we have user data
-import uuid
+from qdrant_client.http.models import PointStruct
 
-rag_embeddings = OpenAIEmbeddings(
-    model="text-embedding-ada-002", openai_api_key=os.environ.get("OPENAI_API_KEY")
-)
+from pymongo import MongoClient
+
+import uuid
+import os
+import json
+
+load_dotenv()
 
 router = APIRouter()
+
 
 class AgentState(dict):
     user_id: str
     thread_id: str
     user_input: str
     memories: list
+    history: list
     docs: list
     response: str
 
@@ -38,9 +41,16 @@ class ManagerAgent:
             url=os.environ.get("QDRANT_URL"),
             api_key=os.environ.get("QDRANT_API_KEY"),
         )
+
+        self.mongo_client = MongoClient(os.environ.get("ATLAS_URI"))
+        
+        self.embeddings = OpenAIEmbeddings(
+            model="text-embedding-ada-002",
+            openai_api_key=os.environ.get("OPENAI_API_KEY"),
+        )
+
         self.graph = self.build_graph()
-        # Replace with SQL or Redis or something later for multi-user support
-        # self.checkpointer = MemorySaver()
+        self.app = self.graph.compile()
 
     # Decide agent for the task
     # Defaults to general
@@ -52,6 +62,7 @@ class ManagerAgent:
         refs = "\n".join([d.page_content for d in state.get("docs", [])])
         prompt = f"""
         SYSTEM_INSTRUCTIONS: You are a patient and adaptive Vietnamese language tutor.
+        You primarily speak in English until it is proven the user understands your semantics or until the user asks.
         Your goal is to help the user improve their Vietnamese through explanation,
         correction, and short quiz-like interactions. 
         
@@ -71,7 +82,7 @@ class ManagerAgent:
         - If the user asks a question, answer it clearly using the reference documents and examples.
         - If the user asks to analyze writing, analyze the user's document for errors or improvement opportunities.
         - When appropriate, generate a short quiz or prompt related to their troubled spots,
-        prioritizing recent or frequent mistakes. 
+        prioritizing recent or frequent mistakes. These quizzes and lessons should be based off of the Vietnamese documents.
         - Use the "Long-Term" memories marked as "Known" to avoid reteaching what they already understand,
         and "Long-Term" memories marked as "troubled" to focus review and practice.
         - Keep explanations simple, supportive, and engaging.
@@ -101,7 +112,6 @@ class ManagerAgent:
         if not self.db_client.collection_exists("user_memories"):
             return {"context": []}
 
-        # Perform similarity search in user memories
         search_result = self.db_client.search(
             collection_name="user_memories",
             query_vector=query_vector,
@@ -111,7 +121,7 @@ class ManagerAgent:
             limit=5,
         )
 
-        # Extract relevant memory text and categories
+        # Categorize memories
         memories = [
             {
                 "text": hit.payload.get("text", ""),
@@ -128,20 +138,20 @@ class ManagerAgent:
 
     def search_rag_documents(self, state: AgentState):
         query_text = state.get("rag_query", state.get("user_input", ""))
+        # TODO Add metadata to documents to generate quizzes based on user's level
         query_vector = list(self.embeddings.embed_query(query_text))
 
-        # Search top 5 matching docs
         search_result = self.db_client.search(
             collection_name="vietnamese_store", query_vector=query_vector, limit=5
         )
 
-        # Extract payload text
         docs = [hit.payload.get("text", "") for hit in search_result]
         return {"docs": docs}
 
     # Decides what the agent will do with the message
     # Could decide to correct, quiz, or just pass through
     def planner(self, state: AgentState):
+        # Another prompt goes here and we tell the LLM to route to another agent
         return state
 
     def build_rag_query(self, state: AgentState):
@@ -149,44 +159,80 @@ class ManagerAgent:
         state["rag_query"] = state["user_input"]
         return state
 
+    def merge_docs(self, state: AgentState, **kwargs):
+        state["docs"] = state.get("memories", []) + state.get("rag_docs", [])
+        return state
+
     def update_memory(self, state: AgentState):
         if not self.db_client.collection_exists("user_memories"):
-            self.db_client.create_collection(
-                collection_name="user_memories",
-                vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
+            raise RuntimeError(
+                "user_memories collection does not exist; create it before updating memories."
             )
-
+            
         response_text = state.get("response", "")
 
         if not response_text.strip():
             return state
 
-        # For now, use the whole response as the memory snippet
-        vector = list(self.embeddings.embed_query(response_text))
+        classification_prompt = f"""
+        Analyze the following text from a Vietnamese tutoring session and respond in JSON.
+        The text below comes from the tutor. 
 
-        # Classify roughly based on tone of text 
-        category = (
-            "troubled"
-            if any(
-                word in response_text.lower()
-                for word in ["mistake", "error", "wrong", "incorrect"]
-            )
-            else "known"
-        )
+        Your job:
+        - Determine if the text reflects *confusion or mistakes* ("troubled")
+        or *confidence and understanding* ("known").
+        - If the text represents neither, mark it as ("misc").
+        - Summarize the main concept or learning point being discussed.
 
-        from qdrant_client.http.models import PointStruct
+        Respond in JSON only with:
+        {{
+            "category": "troubled" or "known",
+            "summary": "one-sentence summary of what was discussed"
+        }}
+
+        Text:
+        {response_text}
+        """
+        # Fallback in case the JSON doesn't work
+        parsed = {"category": "known", "summary": response_text[:100]}
+
+        try:
+            llm_resp = self.llm.invoke(classification_prompt)
+            parsed_resp = llm_resp.content.strip()
+            parsed = json.loads(parsed_resp)
+            
+            if "category" not in parsed or "summary" not in parsed:
+                raise ValueError("Invalid LLM JSON structure.")
+        except Exception as e:
+            print(f"[WARN] Memory classification failed: {e}")
+        
+        category = parsed["category"]
+        
+        summary_text = parsed["summary"]
+        vector = list(self.embeddings.embed_query(summary_text))
+
+        # Discard "misc" memories
+        if category.lower() == "misc":
+            print(f"[MEMORY] Discarding misc memory for user {state['user_id']}: {summary_text}")
+            return state
 
         point = PointStruct(
             id=str(uuid.uuid4()),
             vector=vector,
             payload={
-                "user_id": state["user_id"],
-                "text": response_text,
-                "category": category,
+            "user_id": state["user_id"],
+            "text": response_text,
+            "summary": summary_text,
+            "category": category,
             },
         )
-        
+
         self.db_client.upsert(collection_name="user_memories", points=[point])
+        print(f"[MEMORY] Stored memory for user {state['user_id']} as {category}: {summary_text}")
+
+        # Short Term Memory Storage
+        
+
         return state
 
     def build_graph(self):
@@ -195,19 +241,19 @@ class ManagerAgent:
         # Nodes
         graph.add_node("input", self.handle_user_prompt)
         graph.add_node("memories", self.retrieve_memories)
-        graph.add_node("docs", self.search_rag_documents)
+        graph.add_node("rag_docs", self.search_rag_documents)
         graph.add_node("planner", self.planner)
-        graph.add_node("rag_query", self.build_rag_query)
         graph.add_node("router", self.router)
         graph.add_node("general_agent", self.general_agent)
         graph.add_node("memory_updater", self.update_memory)
+        graph.add_node("merge_docs", self.merge_docs)
 
-        # Edges
+        graph.add_edge(START, "input")
         graph.add_edge("input", "memories")
-        graph.add_edge("input", "rag_query")
-        graph.add_edge("rag_query", "docs")
-        graph.add_edge("memories", "planner")
-        graph.add_edge("docs", "planner")
+        graph.add_edge("memories", "merge_docs")
+        graph.add_edge("rag_docs", "merge_docs")
+        graph.add_edge("merge_docs", "planner")
+        graph.add_edge("rag_docs", "planner")
         graph.add_edge("planner", "router")
         # Route to agent (currently only general_agent)
         graph.add_edge("router", "general_agent")
@@ -226,14 +272,16 @@ class ManagerAgent:
             docs=[],
             response="",
         )
-        return self.graph.invoke(
-            state, config={"configurable": {"thread_id": thread_id}}
-        )
+        return self.app.invoke(state, config={"configurable": {"thread_id": thread_id}})
 
 
-@router.get("/ai-response", response_model=SimpleMessageResponse)
+@router.post("/invoke-agent", response_model=SimpleMessageResponse)
 def invoke_agent(payload: SimpleMessageGet):
     agent = ManagerAgent()
     state = agent.invoke("test_user_id", "test_thread", payload.input_string)
-    response_text = state.get("response") if isinstance(state, dict) else getattr(state, "response", "")
+    response_text = (
+        state.get("response")
+        if isinstance(state, dict)
+        else getattr(state, "response", "")
+    )
     return {"result": response_text}
