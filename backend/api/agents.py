@@ -33,7 +33,6 @@ class AgentState(dict):
 
 class ManagerAgent:
     def __init__(self, llm_model="gpt-5"):
-        # can be extended later to other agent types if we want
         self.agents = {"general_agent": self.general_agent}
         self.router = self.default_router
         self.llm = ChatOpenAI(model=llm_model)
@@ -41,7 +40,7 @@ class ManagerAgent:
             url=os.environ.get("QDRANT_URL"),
             api_key=os.environ.get("QDRANT_API_KEY"),
         )
-
+        
         self.mongo_client = MongoClient(os.environ.get("ATLAS_URI"))
         
         self.embeddings = OpenAIEmbeddings(
@@ -53,6 +52,7 @@ class ManagerAgent:
         self.app = self.graph.compile()
 
     # Decide agent for the task
+    # Another prompt has to go here if there are multiple agents for a task
     # Defaults to general
     def default_router(self, state: AgentState):
         return {"route": "general_agent"}
@@ -104,6 +104,8 @@ class ManagerAgent:
     def handle_user_prompt(self, state: AgentState):
         return {"user_input": state["user_input"]}
 
+    # Incomplete state for now until user memories updates are done
+    # TODO Complete Function
     def retrieve_memories(self, state: AgentState):
         query_text = state.get("user_input", "")
 
@@ -130,7 +132,6 @@ class ManagerAgent:
             for hit in search_result
         ]
 
-        # Combine with short-term session context (if any)
         short_term = state.get("short_term_memories", [])
         combined_context = short_term + memories
 
@@ -139,6 +140,7 @@ class ManagerAgent:
     def search_rag_documents(self, state: AgentState):
         query_text = state.get("rag_query", state.get("user_input", ""))
         # TODO Add metadata to documents to generate quizzes based on user's level
+        # TODO Make prompt here for RAG retrieval
         query_vector = list(self.embeddings.embed_query(query_text))
 
         search_result = self.db_client.search(
@@ -148,21 +150,22 @@ class ManagerAgent:
         docs = [hit.payload.get("text", "") for hit in search_result]
         return {"docs": docs}
 
+
     # Decides what the agent will do with the message
-    # Could decide to correct, quiz, or just pass through
+    # Probably not needed but I'll keep it here for now 
     def planner(self, state: AgentState):
-        # Another prompt goes here and we tell the LLM to route to another agent
+        # Another prompt goes here if we decide that there is a specialized case
         return state
 
-    def build_rag_query(self, state: AgentState):
-        # add classification later and a more sophisticated rag query
-        state["rag_query"] = state["user_input"]
-        return state
-
+    # Required because of graph layout
+    # Handles updating both memories and rag document outputs
     def merge_docs(self, state: AgentState, **kwargs):
         state["docs"] = state.get("memories", []) + state.get("rag_docs", [])
         return state
 
+    # Incomplete State 
+    # TODO Finish short term memory and add mongo
+    # TODO Test memory functions
     def update_memory(self, state: AgentState):
         if not self.db_client.collection_exists("user_memories"):
             raise RuntimeError(
@@ -238,7 +241,6 @@ class ManagerAgent:
     def build_graph(self):
         graph = StateGraph(AgentState)
 
-        # Nodes
         graph.add_node("input", self.handle_user_prompt)
         graph.add_node("memories", self.retrieve_memories)
         graph.add_node("rag_docs", self.search_rag_documents)
@@ -262,7 +264,7 @@ class ManagerAgent:
 
         return graph
 
-    # Main interface with the class
+    # Executes the agent pipeline
     def invoke(self, user_id, thread_id, user_input):
         state = AgentState(
             user_id=user_id,
