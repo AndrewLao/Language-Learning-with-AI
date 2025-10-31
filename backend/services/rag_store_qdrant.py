@@ -63,11 +63,18 @@ def upload_documents_to_qdrant(directory, coll_name):
             collection_name=coll_name,
             vectors_config=VectorParams(size=embedding_dimension, distance=Distance.COSINE)
         )
+        # Create a payload index for lesson_index to enable filtering
+        client.create_payload_index(
+            collection_name=coll_name,
+            field_name="lesson_index",
+            field_schema="integer"  # since lesson_index is a number
+        )
 
     # Prepare points as PointStruct instances with vector and payload
     points = [
         PointStruct(
-            id=idx,
+            # id=idx,
+            id=chunk.metadata.get('lesson_index'),   # string id
             vector=list(embeddings.embed_query(chunk.page_content)),
             payload={"text": chunk.page_content, "lesson_index": chunk.metadata.get("lesson_index")}
         )
@@ -90,5 +97,32 @@ def query_qdrant(coll_name, query_text, top_k=5):
     )
     return search_result
 
-upload_documents_to_qdrant("Lesson plans", "vietnamese_store_with_metadata")
+from qdrant_client.http import models
+# upload_documents_to_qdrant("Lesson plans", "vietnamese_store_with_metadata_indexed")
+results = client.scroll(
+    collection_name="vietnamese_store_with_metadata_indexed",
+    scroll_filter=models.Filter(
+        must=[
+            models.FieldCondition(
+                key="lesson_index",
+                range=models.Range(lt=5)  # less than 5
+            )
+        ]
+    ),
+    limit=100,  # adjust this number as needed
+    with_payload=True,  # include the payload in results
+    with_vectors=False  # skip vectors unless you need them
+)
+
+# Print results to verify
+if results[0]:  # if there are any results
+    for point in results[0]:
+        print(f"Lesson {point.payload['lesson_index']}: {point.payload['text'][:100]}...")
+# # Recreate collection and reupload documents
+# if client.collection_exists("vietnamese_store_with_metadata_indexed"):
+#     print("Deleting existing collection to recreate with proper index...")
+#     client.delete_collection("vietnamese_store_with_metadata_indexed")
+
+# # Upload documents
+# upload_documents_to_qdrant("Lesson plans", "vietnamese_store_with_metadata_indexed")
 # upload_documents_to_qdrant("Test plans", "vietnamese_test_store")
