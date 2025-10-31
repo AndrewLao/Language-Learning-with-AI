@@ -100,7 +100,8 @@ class ManagerAgent:
         return {"user_input": state["user_input"]}
 
     # Incomplete state for now until user memories updates are done
-    # TODO Complete Function
+    # TODO Complete Function and Finish Short Term memory retrieval
+    # TODO Make prompt to get memory if necessary to not use user input
     def retrieve_memories(self, state: AgentState):
         query_text = state.get("user_input", "")
 
@@ -134,8 +135,9 @@ class ManagerAgent:
 
     def search_rag_documents(self, state: AgentState):
         query_text = state.get("rag_query", state.get("user_input", ""))
-        # TODO Add metadata to documents to generate quizzes based on user's level
-        # TODO Make prompt here for RAG retrieval
+        # TODO Integrate metadata from documents to do lesson order
+        # TODO Integrate mongo for lessons completed
+        # TODO Make prompt here for RAG retrieval not based on user input
         query_vector = list(self.embeddings.embed_query(query_text))
 
         search_result = self.db_client.search(
@@ -214,6 +216,7 @@ class ManagerAgent:
             print(f"[MEMORY] Discarding misc memory for user {state['user_id']}: {summary_text}")
             return state
 
+        # TODO Might also need to store date of memory to get most recent memories later
         point = PointStruct(
             id=str(uuid.uuid4()),
             vector=vector,
