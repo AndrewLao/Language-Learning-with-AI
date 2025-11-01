@@ -97,32 +97,9 @@ def query_qdrant(coll_name, query_text, top_k=5):
     )
     return search_result
 
-from qdrant_client.http import models
-# upload_documents_to_qdrant("Lesson plans", "vietnamese_store_with_metadata_indexed")
-results = client.scroll(
-    collection_name="vietnamese_store_with_metadata_indexed",
-    scroll_filter=models.Filter(
-        must=[
-            models.FieldCondition(
-                key="lesson_index",
-                range=models.Range(lt=5)  # less than 5
-            )
-        ]
-    ),
-    limit=100,  # adjust this number as needed
-    with_payload=True,  # include the payload in results
-    with_vectors=False  # skip vectors unless you need them
-)
+def get_qdrant_client():
+    return client
 
-# Print results to verify
-if results[0]:  # if there are any results
-    for point in results[0]:
-        print(f"Lesson {point.payload['lesson_index']}: {point.payload['text'][:100]}...")
-# # Recreate collection and reupload documents
-# if client.collection_exists("vietnamese_store_with_metadata_indexed"):
-#     print("Deleting existing collection to recreate with proper index...")
-#     client.delete_collection("vietnamese_store_with_metadata_indexed")
-
-# # Upload documents
+# Upload documents, only need to run once
 # upload_documents_to_qdrant("Lesson plans", "vietnamese_store_with_metadata_indexed")
 # upload_documents_to_qdrant("Test plans", "vietnamese_test_store")
