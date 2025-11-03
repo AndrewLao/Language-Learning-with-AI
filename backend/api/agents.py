@@ -4,17 +4,39 @@ import json
 from langgraph.graph import StateGraph, END, START
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
+from services.rag_store_qdrant import get_qdrant_client
 from models.userschema import SimpleMessageGet, SimpleMessageResponse
 import os
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct
+from qdrant_client.http.exceptions import ResponseHandlingException
 import uuid
 
 load_dotenv()
 
-router = APIRouter()
+# Initialize Qdrant client with proper error handling
+try:
+    qdrant_url = os.environ.get("QDRANT_URL_KEY")
+    qdrant_api_key = os.environ.get("QDRANT_API_KEY")
+    
+    if not qdrant_url or not qdrant_api_key:
+        raise ValueError("QDRANT_URL_KEY or QDRANT_API_KEY not found in environment variables")
+    
+    client = QdrantClient(
+        url=qdrant_url,
+        api_key=qdrant_api_key,
+        timeout=10  # Add timeout to avoid hanging
+    )
+    # Test the connection
+    client.get_collections()
+    print("Successfully connected to Qdrant")
+except Exception as e:
+    print(f"Error connecting to Qdrant: {str(e)}")
+    print(f"Using URL: {qdrant_url}")
+    raise
 
+router = APIRouter()
 
 class AgentState(dict):
     user_id: str
@@ -31,10 +53,7 @@ class ManagerAgent:
         self.agents = {"general_agent": self.general_agent}
         self.router = self.default_router
         self.llm = ChatOpenAI(model=llm_model)
-        self.db_client = QdrantClient(
-            url=os.environ.get("QDRANT_URL"),
-            api_key=os.environ.get("QDRANT_API_KEY"),
-        )
+        self.db_client = get_qdrant_client()
         
         self.mongo_client = MongoClient(os.environ.get("ATLAS_URI"))
         
