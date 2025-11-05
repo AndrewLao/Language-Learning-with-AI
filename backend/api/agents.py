@@ -4,10 +4,11 @@ import json
 from langgraph.graph import StateGraph, END, START
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
+from api.miscellanous import save_chat_turn_sync
+from services.rag_store_qdrant import get_qdrant_client
 from models.userschema import SimpleMessageGet, SimpleMessageResponse
 import os
 from pymongo import MongoClient
-from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct
 import uuid
 
@@ -31,10 +32,7 @@ class ManagerAgent:
         self.agents = {"general_agent": self.general_agent}
         self.router = self.default_router
         self.llm = ChatOpenAI(model=llm_model)
-        self.db_client = QdrantClient(
-            url=os.environ.get("QDRANT_URL"),
-            api_key=os.environ.get("QDRANT_API_KEY"),
-        )
+        self.db_client = get_qdrant_client()
         
         self.mongo_client = MongoClient(os.environ.get("ATLAS_URI"))
         
@@ -234,7 +232,7 @@ class ManagerAgent:
         print(f"[MEMORY] Stored memory for user {state['user_id']} as {category}: {summary_text}")
 
         # Short Term Memory Storage
-        
+        save_chat_turn_sync(state["chat_id"], response_text, role="system")
 
         return state
 
