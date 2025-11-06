@@ -164,6 +164,7 @@ def list_user_chats(user_id: str, db_fs=Depends(get_db_fs)):
     # Only return metadata fields
     projection = {
         "_id": 0,
+        "user_id": 1,
         "chat_id": 1,
         "chat_name": 1,
         "created_at": 1,
@@ -191,14 +192,19 @@ def get_messages(chat_id: str, last_index: int = Query(0, ge=0, description="Ind
 ):
     db, _ = db_fs
 
+    # When using $slice on an array field, MongoDB does not allow projecting
+    # the array subfields (e.g. "messages.message_id") at the same time
+    # — doing so causes a "Path collision" error. Project the sliced
+    # `messages` array and any top-level fields you need instead.
     slice_query = {
+        "_id": 0,  # exclude _id
+        # return a window of messages (last_index + 25) most recent messages
         "messages": {"$slice": [-(last_index + 25), 25]},
-        "_id": 0,   # exclude _id
-        "messages.message_id": 1,
-        "messages.turn": 1,
-        "messages.role": 1,
-        "messages.text": 1,
-        "messages.timestamp": 1
+        # If you need top-level metadata, include them explicitly
+        "chat_id": 1,
+        "user_id": 1,
+        "last_seen_at": 1,
+        "last_message_at": 1,
     }
 
     chat = db.chat_sessions.find_one_and_update(
