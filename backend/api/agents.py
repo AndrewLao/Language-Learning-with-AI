@@ -250,10 +250,9 @@ class ManagerAgent:
 
         graph.add_edge(START, "input")
         graph.add_edge("input", "memories")
-        graph.add_edge("memories", "merge_docs")
+        graph.add_edge("memories", "rag_docs")
         graph.add_edge("rag_docs", "merge_docs")
         graph.add_edge("merge_docs", "planner")
-        graph.add_edge("rag_docs", "planner")
         graph.add_edge("planner", "router")
         # Route to agent (currently only general_agent)
         graph.add_edge("router", "general_agent")
