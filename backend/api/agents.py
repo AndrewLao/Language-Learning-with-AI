@@ -232,6 +232,7 @@ class ManagerAgent:
         print(f"[MEMORY] Stored memory for user {state['user_id']} as {category}: {summary_text}")
 
         # Short Term Memory Storage
+        save_chat_turn_sync(state["chat_id"], state.get("user_input", ""), role="user")
         save_chat_turn_sync(state["chat_id"], response_text, role="system")
 
         return state
@@ -277,7 +278,9 @@ class ManagerAgent:
 @router.post("/invoke-agent", response_model=SimpleMessageResponse)
 def invoke_agent(payload: SimpleMessageGet):
     agent = ManagerAgent()
-    state = agent.invoke("test_user_id", "test_chat_id", payload.input_string)
+    state = agent.invoke(
+        "343", "2a8bf31a-4307-4f16-b382-7a6a6057915b", payload.input_string
+    )
     response_text = (
         state.get("response")
         if isinstance(state, dict)
