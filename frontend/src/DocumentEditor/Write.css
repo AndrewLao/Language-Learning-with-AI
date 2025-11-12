@@ -93,13 +93,16 @@
 .editor-placeholder {
     width: 100%;
     min-height: 60vh;
-    background: #213547;
-    color: #213547;
-    border-radius: 0.5em;
+    background: transparent;
+    /* let RichTextEditor provide the dark background */
+    color: #e6eef8;
+    border-radius: 8px;
+    box-shadow: none;
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
     font-size: 1.2em;
+    padding: 0;
 }
 
 .writing-advice {
@@ -108,7 +111,7 @@
     max-width: 25em;
     background: #031D31;
     border-left: 0.125em solid #213547;
-    padding: 2em 1em 1em 1em;
+    padding: 1em 1em 1em 1em;
     margin-right: 1.5em;
     display: flex;
     flex-direction: column;
@@ -226,3 +229,4 @@
         padding: 1em;
     }
 }
+

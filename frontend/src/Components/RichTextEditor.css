@@ -1,11 +1,13 @@
 .rte-container {
-    border: 1px solid #d1d5db;
-    background: #fff;
-    color: #213547;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    background: #07101a;
+    color: #e6eef8;
     display: flex;
     flex-direction: column;
     height: 100%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    width: 90%;
+    box-shadow: 0 6px 18px rgba(2, 6, 23, 0.6);
 }
 
 .rte-toolbar {
@@ -13,51 +15,108 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5em;
-    padding: 0.5em 1em;
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 0.5em;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
 }
 
-.rte-toolbar-group {
-    display: flex;
-    align-items: center;
-    gap: 0.25em;
-    margin-right: 1.5em;
-}
-
+/* toolbar controls: subtle, light on dark */
 .rte-toolbar button,
 .rte-toolbar select {
-    background: #fff;
-    color: #222;
-    border: 1px solid #d1d5db;
+    background: rgba(255, 255, 255, 0.02);
+    color: #e6eef8;
+    border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: 4px;
-    padding: 0.3em 0.7em;
+    padding: 0.28em 0.6em;
+    font-size: 0.95rem;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.rte-toolbar select option {
+    background: #07101a;
+    /* editor background */
+    color: #e6eef8;
+}
+
+.rte-toolbar select option:hover,
+.rte-toolbar select option:focus {
     cursor: pointer;
-    font-size: 1em;
-    transition: background 0.15s, border-color 0.15s;
 }
 
 .rte-toolbar button:hover,
 .rte-toolbar select:hover,
 .rte-toolbar button:focus,
 .rte-toolbar select:focus {
-    background: #f3f4f6;
-    border-color: #646cff;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(165, 108, 255, 0.9);
     outline: none;
+    cursor: pointer;
 }
 
-.rte-toolbar select {
-    padding: 0.3em 1.2em 0.3em 0.7em;
-    min-width: 3.5em;
+/* editor body */
+.rte-editor {
+    flex: 1 1 auto;
+    padding: 1.25rem;
+    outline: none;
+    font-size: 1.05rem;
+    background: transparent;
+    /* container already dark */
+    color: #e6eef8;
+    border-radius: 0 0 8px 8px;
+    overflow-y: auto;
+    line-height: 1.6;
+    min-height: 320px;
+    caret-color: #a5b4fc;
+}
+
+/* selection color for readability */
+.rte-editor ::selection {
+    background: #646cff;
+    color: #fff;
+}
+
+/* headings & content styling to fit dark theme */
+.rte-editor h1,
+.rte-editor h2,
+.rte-editor h3 {
+    color: #fff;
+    margin: 0.6em 0 0.3em 0;
+}
+
+.rte-editor p {
+    margin: 0.4em 0;
+    color: #dbe8ff;
+}
+
+.rte-editor blockquote {
+    border-left: 3px solid rgba(165, 108, 255, 0.18);
+    color: #cbdffd;
+    margin: 0.4em 0;
+    padding-left: 0.75em;
+}
+
+.rte-editor ul,
+.rte-editor ol {
+    margin: 0.4em 0 0.4em 1.2em;
+    color: #dbe8ff;
+}
+
+.rte-editor::-webkit-scrollbar {
+    width: 0.6rem;
+    height: 0.6rem;
+}
+
+.rte-editor::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+}
+
+.rte-editor::-webkit-scrollbar-thumb {
+    background: rgba(165, 108, 255, 0.22);
+    border-radius: 6px;
 }
 
 .rte-editor {
-    flex: 1 1 auto;
-    padding: 1em;
-    outline: none;
-    font-size: 1.1em;
-    background: #fff;
-    color: #213547;
-    border-radius: 0 0 8px 8px;
-    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(165, 108, 255, 0.22) rgba(255, 255, 255, 0.02);
 }

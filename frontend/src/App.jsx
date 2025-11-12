@@ -31,7 +31,7 @@ function AppWrapper() {
         {showBanner && <Banner />}
         {/* Auth logic currently ignored since cognito is turned off right now. Add after app finished.*/}
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Learn />} />
           <Route path="/learn" element={<Learn />} />
           <Route path="/write" element={<Write />} />
           <Route path="/profile" element={<Profile />} />

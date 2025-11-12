@@ -18,6 +18,11 @@
     height: 100%;
 }
 
+.chat-list {
+    flex: 0 0 14rem;
+    width: 14rem;
+}
+
 .conversation-container {
     flex: 1 1 0;
     background: #031D31;
@@ -26,7 +31,7 @@
     flex-direction: column;
     justify-content: flex-end;
     padding: 2em;
-    margin: 0em 0em 0em 2em;
+    margin: 0em 0em 0em 0em;
     overflow: hidden;
     gap: 1em;
 }
