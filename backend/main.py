@@ -6,7 +6,7 @@ from pymongo import MongoClient
 from gridfs import GridFS
 from contextlib import asynccontextmanager
 # from api import agents, rag, users
-from api import users, agents
+from api import users, agents, testingAgent, testingAgent1
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,6 +32,8 @@ app = FastAPI(title="LangTutor API" , lifespan=lifespan)
 # app.include_router(agents.router, prefix="/agents", tags=["Agents"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(agents.router, prefix="/agent", tags=["Agent"])
+app.include_router(testingAgent.router, prefix="/test", tags=["Testing"])
+app.include_router(testingAgent1.router, prefix="/quiz", tags=["Quiz"])
 
 
 @app.get("/")
