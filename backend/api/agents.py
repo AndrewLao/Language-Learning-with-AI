@@ -197,6 +197,7 @@ class ManagerAgent:
         print(f"[MEMORY] Stored memory for user {state['user_id']} as {category}: {summary_text}")
 
         # Short Term Memory Storage
+        save_chat_turn_sync(state["chat_id"], state.get("user_input", ""), role="user")
         save_chat_turn_sync(state["chat_id"], response_text, role="system")
 
         return state
@@ -215,10 +216,9 @@ class ManagerAgent:
 
         graph.add_edge(START, "input")
         graph.add_edge("input", "memories")
-        graph.add_edge("memories", "merge_docs")
+        graph.add_edge("memories", "rag_docs")
         graph.add_edge("rag_docs", "merge_docs")
         graph.add_edge("merge_docs", "planner")
-        graph.add_edge("rag_docs", "planner")
         graph.add_edge("planner", "router")
         # Route to agent (currently only general_agent)
         graph.add_edge("router", "general_agent")
@@ -243,7 +243,9 @@ class ManagerAgent:
 @router.post("/invoke-agent", response_model=SimpleMessageResponse)
 def invoke_agent(payload: SimpleMessageGet):
     agent = ManagerAgent()
-    state = agent.invoke("343", "2a8bf31a-4307-4f16-b382-7a6a6057915b", payload.input_string)
+    state = agent.invoke(
+        "343", "2a8bf31a-4307-4f16-b382-7a6a6057915b", payload.input_string
+    )
     response_text = (
         state.get("response")
         if isinstance(state, dict)
