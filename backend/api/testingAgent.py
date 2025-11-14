@@ -152,7 +152,8 @@ Example: {{"is_correct": true, "explanation": "Because..."}}
             return {"response": final_msg, "question": ""}
 
         # Otherwise generate the next question
-        next_prompt = f"Generate one clear yes/no question to continue the quiz based on context."
+        next_prompt = f"""Based on the context ask me one yes/no questions " \
+            Context: {state.get("docs", [])}"""
         next_resp = self.llm.invoke(next_prompt)
         next_question = next_resp.content.strip()
 
