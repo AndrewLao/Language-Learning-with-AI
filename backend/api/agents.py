@@ -5,12 +5,13 @@ from langgraph.graph import StateGraph, END, START
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
 from api.miscellanous import save_chat_turn_sync
-from services.rag_store_qdrant import get_qdrant_client
+from services.rag_store_qdrant import get_qdrant_client, query_qdrant
 from models.userschema import SimpleMessageGet, SimpleMessageResponse
 import os
 from pymongo import MongoClient
 from qdrant_client.http.models import PointStruct
 import uuid
+import time 
 
 load_dotenv()
 
@@ -48,15 +49,27 @@ class ManagerAgent:
     # Another prompt has to go here if there are multiple agents for a task
     # Defaults to general
     def default_router(self, state: AgentState):
+        print("Time default router:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         return {"route": "general_agent"}
 
     def general_agent(self, state: AgentState):
+        print("Time general agent:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         context = "\n".join([m.page_content for m in state.get("memories", [])])
-        refs = "\n".join([d.page_content for d in state.get("docs", [])])
+        refs = "\n".join([d for d in state.get("docs", [])])
+        print(f"[GENERAL AGENT] Context: {context}")
+        print(f"[GENERAL AGENT] References: {refs}")
         prompt = f"""
-        You are a helpful and knowledgeable Vietnamese language tutor AI. Use the context and references provided to assist the user with their learning.
+        You are a helpful and knowledgeable Vietnamese language tutor AI. Use the context and references provided to answer the user question.
+        Respond in English
+        Context:
+        {context}
+        References:
+        {refs}
+        User Question:
+        {state.get("user_input", "")}
         """
         resp = self.llm.invoke(prompt)
+        print("End general agent:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         return {"response": resp.content}
 
     # Aux step to filter incoming text
@@ -67,6 +80,7 @@ class ManagerAgent:
     # TODO Complete Function and Finish Short Term memory retrieval
     # TODO Make prompt to get memory if necessary to not use user input
     def retrieve_memories(self, state: AgentState):
+        print("Time retrieve memories:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         query_text = state.get("user_input", "")
 
         query_vector = list(self.embeddings.embed_query(query_text))
@@ -98,37 +112,44 @@ class ManagerAgent:
         return {"context": combined_context}
 
     def search_rag_documents(self, state: AgentState):
+        print("Time search rag:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         query_text = state.get("rag_query", state.get("user_input", ""))
         # TODO Integrate metadata from documents to do lesson order
         # TODO Integrate mongo for lessons completed
         # TODO Make prompt here for RAG retrieval not based on user input
         # TODO After the lessons are finished work on getting user documents loaded
-        query_vector = list(self.embeddings.embed_query(query_text))
+        # query_vector = list(self.embeddings.embed_query(query_text))
 
-        search_result = self.db_client.search(
-            collection_name="vietnamese_store", query_vector=query_vector, limit=5
-        )
+        # search_result = self.db_client.search(
+        #     collection_name="vietnamese_store", query_vector=query_vector, limit=1
+        # )
+
+        search_result = query_qdrant("vietnamese_store", query_text, top_k=1)
 
         docs = [hit.payload.get("text", "") for hit in search_result]
+        print(f"[RAG SEARCH] ", docs)
         return {"docs": docs}
 
 
     # Decides what the agent will do with the message
     # Probably not needed but I'll keep it here for now 
     def planner(self, state: AgentState):
+        print("Time planner:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         # Another prompt goes here if we decide that there is a specialized case
-        return state
+        return {}
 
     # Required because of graph layout
     # Handles updating both memories and rag document outputs
     def merge_docs(self, state: AgentState, **kwargs):
-        state["docs"] = state.get("memories", []) + state.get("rag_docs", [])
-        return state
+        print("Time merge docs:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        combined = state.get("memories", []) + state.get("docs", [])
+        return {"docs": combined}
 
     # Incomplete State 
     # TODO Finish short term memory and add mongo
     # TODO Test memory functions
     def update_memory(self, state: AgentState):
+        print("Time update memory:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         if not self.db_client.collection_exists("user_memories"):
             raise RuntimeError(
                 "user_memories collection does not exist; create it before updating memories."
@@ -179,7 +200,7 @@ class ManagerAgent:
         # Discard "misc" memories
         if category.lower() == "misc":
             print(f"[MEMORY] Discarding misc memory for user {state['user_id']}: {summary_text}")
-            return state
+            return {}
 
         # TODO Might also need to store date of memory to get most recent memories later
         point = PointStruct(
@@ -200,7 +221,7 @@ class ManagerAgent:
         save_chat_turn_sync(state["chat_id"], state.get("user_input", ""), role="user")
         save_chat_turn_sync(state["chat_id"], response_text, role="system")
 
-        return state
+        return {}
 
     def build_graph(self):
         graph = StateGraph(AgentState)
