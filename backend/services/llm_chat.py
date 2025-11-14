@@ -55,7 +55,6 @@ def chat_with_llm(session_id, input):
     )
     return output
 
-# context_str = "Just know that Asum language is a new language has 2 tones which influence meaning."
 def chat_with_llm_and_context(session_id, input, context_str):
     output = runnable_with_history_with_context.invoke(
         {"input": input, "context": context_str},
@@ -63,6 +62,5 @@ def chat_with_llm_and_context(session_id, input, context_str):
     )
     return output
 
-# print(chat_with_llm("test_session", "What is 4+4?"))
-# print(chat_with_llm_and_context("test_session", "Remember my name is Khai Nguyen", context_str))
-# get_session_history("test_session").clear()
+def clear_session_history(session_id):
+    get_session_history(session_id).clear()
