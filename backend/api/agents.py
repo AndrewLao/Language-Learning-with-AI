@@ -8,6 +8,11 @@ from models.userschema import SimpleMessageGet, SimpleMessageResponse
 import os
 from pymongo import MongoClient
 from qdrant_client import QdrantClient
+from api.miscellanous import save_chat_turn_sync
+from services.rag_store_qdrant import get_qdrant_client
+from models.userschema import SimpleMessageGet, SimpleMessageResponse
+import os
+from pymongo import MongoClient
 from qdrant_client.http.models import PointStruct
 import uuid
 
@@ -234,7 +239,7 @@ class ManagerAgent:
         print(f"[MEMORY] Stored memory for user {state['user_id']} as {category}: {summary_text}")
 
         # Short Term Memory Storage
-        
+        save_chat_turn_sync(state["chat_id"], response_text, role="system")
 
         return state
 
@@ -252,10 +257,9 @@ class ManagerAgent:
 
         graph.add_edge(START, "input")
         graph.add_edge("input", "memories")
-        graph.add_edge("memories", "merge_docs")
+        graph.add_edge("memories", "rag_docs")
         graph.add_edge("rag_docs", "merge_docs")
         graph.add_edge("merge_docs", "planner")
-        graph.add_edge("rag_docs", "planner")
         graph.add_edge("planner", "router")
         # Route to agent (currently only general_agent)
         graph.add_edge("router", "general_agent")
