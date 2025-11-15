@@ -21,14 +21,15 @@ def save_chat_turn_sync(chat_id: str, text: str, role: str = "system"):
     print("save_chat_turn_sync response:", r2.status_code, r2.text)
     try:
         r2.raise_for_status()
-        data =  r2.json()
+        data = r2.json()
         chat = ChatSession(**data)        # validate shape
         # success — do something with `chat`
         print(f"Saved turn {turn} to chat {chat_id}")
+        return data
     except requests.exceptions.HTTPError as http_err:
         print("HTTP error:", http_err, r2.text)
     except requests.exceptions.RequestException as req_err:
         print("Network/timeout error:", req_err)
     except Exception as e:
         print("Response parsing/validation error:", e)
-    return r2.json()
+    return None
