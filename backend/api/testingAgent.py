@@ -4,13 +4,10 @@ import json
 from langgraph.graph import StateGraph, END, START
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
-from api.miscellanous import save_chat_turn_sync
-from services.rag_store_qdrant import get_qdrant_client, query_qdrant
-from models.userschema import SimpleMessageGet, SimpleMessageResponse
+from services.rag_store_qdrant import query_qdrant
+from models.userschema import  SimpleMessageResponse
 import os
 from pymongo import MongoClient
-from qdrant_client.http.models import PointStruct
-import uuid
 import time
 
 load_dotenv()
@@ -37,7 +34,6 @@ class AgentState(dict):
     question: str
     mode: str  # "question" or "answer"
     user_answer: str  # For answer mode
-
 
 class ManagerAgent:
     def __init__(self, llm_model="gpt-5"):
@@ -76,7 +72,7 @@ class ManagerAgent:
         refs = state.get("docs", [])
         print("Test refsdew:", state.get("docs"))
         prompt = f"""
-         Based on the context ask me three yes/no questions one at a time " \
+        Based on the context ask me three yes/no questions one at a time " \
         "Before show me the next question, tell me whether or not I was correct on previous question " \
         "After that show me the score.
         Context: {refs}
@@ -117,14 +113,14 @@ class ManagerAgent:
 
         # Evaluate the answer using LLM (expecting JSON with is_correct and explanation)
         evaluation_prompt = f"""
-You are evaluating a yes/no answer for a question.
+        You are evaluating a yes/no answer for a question.
 
-Question: {conv.get('last_question')}
-User answer: {user_answer}
+        Question: {conv.get('last_question')}
+        User answer: {user_answer}
 
-Respond in JSON with keys: is_correct (true/false) and said whether the answer is correct or no).
-Example: {{"is_correct": true, "explanation": "Because..."}}
-"""
+        Respond in JSON with keys: is_correct (true/false) and said whether the answer is correct or no).
+        Example: {{"is_correct": true, "explanation": "Because..."}}
+        """
 
         try:
             eval_resp = self.llm.invoke(evaluation_prompt)
@@ -180,7 +176,7 @@ Example: {{"is_correct": true, "explanation": "Because..."}}
 
         try:
             # Add timeout and error handling
-            search_result = query_qdrant('vietnamese_test_store', query_text, top_k=5)
+            search_result = query_qdrant('vietnamese_test_store', query_text, top_k=1)
             docs = [hit.payload.get("text", "") for hit in search_result]
             print("RAG Docs:", docs)
         except Exception as e:
@@ -189,9 +185,6 @@ Example: {{"is_correct": true, "explanation": "Because..."}}
         
         return {"docs": docs}
 
-
-    # Decides what the agent will do with the message
-    # Probably not needed but I'll keep it here for now 
     def planner(self, state: AgentState):
         # Another prompt goes here if we decide that there is a specialized case
         # Planner should not re-write the entire state; return only modified keys (none)
@@ -204,9 +197,6 @@ Example: {{"is_correct": true, "explanation": "Because..."}}
         combined = state.get("memories", []) + state.get("docs", [])
         return {"docs": combined}
 
-    # Incomplete State 
-    # TODO Finish short term memory and add mongo
-    # TODO Test memory functions
     def update_memory(self, state: AgentState):
         print("Time update memory:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         return {}
@@ -221,12 +211,10 @@ Example: {{"is_correct": true, "explanation": "Because..."}}
         graph.add_node("mode_router", self.mode_router)
         graph.add_node("general_agent", self.general_agent)
         graph.add_node("answer_evaluator", self.answer_evaluator)
-        # graph.add_node("memory_updater", self.update_memory)
         graph.add_node("merge_docs", self.merge_docs)
 
         graph.add_edge(START, "input")
         graph.add_edge("input", "memories")
-        # graph.add_edge("memories", "merge_docs")
         graph.add_edge("memories", "rag_docs")
         graph.add_edge("rag_docs", "merge_docs")
         graph.add_edge("merge_docs", "planner")
@@ -273,35 +261,38 @@ Example: {{"is_correct": true, "explanation": "Because..."}}
 @router.post("/invoke-agent-test", response_model=SimpleMessageResponse)
 def invoke_agent(payload: dict):
     """
-    Combined endpoint for both asking and answering questions.
-    
-    For asking a question:
+    Combined endpoint using a single `input_string` field for both modes.
+
+    For asking a question (start/continue quiz):
     {
         "input_string": "Topic to learn about",
         "mode": "question"  # optional, defaults to "question"
     }
-    
-    For answering a question:
+
+    For answering a question (submit answer):
     {
-        "answer": "yes",
+        "input_string": "yes",
         "mode": "answer",
         "chat_id": "optional-chat-id"
     }
     """
     agent = ManagerAgent()
     mode = payload.get("mode", "question")
-    chat_id = payload.get("chat_id", "2a8bf31a-4307-4f16-b382-7a6a6057915b")
-    user_id = payload.get("user_id", "343")
-    
+
+    chat_id = payload.get("chat_id")
+    user_id = payload.get("user_id")
+
+    # Use `input_string` as the single input field for both asking and answering
+    input_string = payload.get("input_string", "")
+
     if mode == "question":
-        input_string = payload.get("input_string", "")
         state = agent.invoke(user_id, chat_id, input_string, mode="question")
     elif mode == "answer":
-        user_answer = payload.get("answer", "")
-        state = agent.invoke(user_id, chat_id, "", mode="answer", user_answer=user_answer)
+        # Treat input_string as the user's answer when in answer mode
+        state = agent.invoke(user_id, chat_id, "", mode="answer", user_answer=input_string)
     else:
         return {"result": "Invalid mode. Use 'question' or 'answer'"}
-    
+
     response_text = (
         state.get("response")
         if isinstance(state, dict)
