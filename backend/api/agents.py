@@ -290,7 +290,8 @@ class ManagerAgent:
 def invoke_agent(payload: SimpleMessageGet):
     agent = ManagerAgent()
     state = agent.invoke(
-        "343", "2a8bf31a-4307-4f16-b382-7a6a6057915b", payload.input_string
+        # "343", "2a8bf31a-4307-4f16-b382-7a6a6057915b"
+        payload.user_id, payload.chat_id, payload.input_string
     )
     response_text = (
         state.get("response")
