@@ -26,7 +26,6 @@ const API_BASE = import.meta.env.VITE_API_URL;
 const API_INVOKE_AGENT = `${API_BASE}/agent/invoke-agent`;
 
 
-
 const Learn = () => {
     const [messages, setMessages] = useState(test_messages);
     const [loading, setLoading] = useState(false);
