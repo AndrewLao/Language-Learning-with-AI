@@ -2,64 +2,87 @@ import "./Learn.css"
 import LearnTextBox from "../Components/LearnTextbox";
 import TextDisplay from "../Components/TextDisplay";
 import ChatList from "../Components/ChatList";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-
-// Temporary messages for testing
-const test_messages = [];
-const test_chats = [
-    {
-        id: "chat_001",
-        name: "Personal Journal — Nov 11",
-        lastEdited: "2025-11-11T09:12:00Z",
-        snippet: "Woke up early and practiced Vietnamese. Worked on verb conjugations…",
-    },
-    {
-        id: "chat_002",
-        name: "Vietnamese Practice: Sentences",
-        lastEdited: "2025-11-10T18:40:00Z",
-        snippet: "Can you correct: Tôi đi học mỗi ngày?",
-    },
-];
 
 const API_BASE = import.meta.env.VITE_API_URL;
 const API_INVOKE_AGENT = `${API_BASE}/agent/invoke-agent`;
 
 
 const Learn = () => {
-    const [messages, setMessages] = useState(test_messages);
+    const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [selectedChat, setSelectedChat] = useState(null);
+    const [chats, setChats] = useState([]);
 
     const handleSend = async (text) => {
-        if (text.trim() === "") return;
-        const newMessages = [...messages, { role: "user", content: text }];
-        setMessages(newMessages);
+        if (!text.trim() || !selectedChat || loading) return;
+
         setLoading(true);
 
+        // Immediately show the user message (local UI)
+        const userMessage = { role: "User", content: text };
+        setMessages(prev => [...prev, userMessage]);
+
         try {
-            const res = await axios.post(API_INVOKE_AGENT, {
+            const res = await axios.post(`${API_INVOKE_AGENT}`, {
+                user_id: localStorage.getItem("userId") || "test_user",
+                chat_id: selectedChat,
                 input_string: text
             });
-            // Filter out "\n", "AI:", and extra whitespace
-            let reply = res.data.result
-                .replace(/\\n/g, " ")         
-                .replace(/\n/g, " ")          
-                .replace(/AI:/g, "")          
-                .replace(/\s+/g, " ")         
-                .trim();
-            setMessages([...newMessages, { role: "assistant", content: reply }]);
+
+            const reply = res.data?.result ?? "";
+
+            const agentMessage = { role: "Agent", content: reply };
+            setMessages(prev => [...prev, agentMessage]);
+
         } catch (err) {
-            console.error("Error in handleSend:", err);
-            setMessages([...newMessages, { role: "assistant", content: "Sorry, there was an error connecting to the server." }]);
+            console.error("Error invoking agent:", err);
+            setMessages(prev => [...prev, {
+                role: "Agent",
+                content: "Sorry, something went wrong."
+            }]);
         } finally {
             setLoading(false);
         }
     };
 
+
+    useEffect(() => {
+        if (!selectedChat) return;
+
+        const fetchMessages = async () => {
+            try {
+                const res = await axios.get(
+                    `${API_BASE}/users/chats/${selectedChat}/messages`,
+                    { params: { last_index: 0 } }
+                );
+
+                const formatted = res.data.map(m => ({
+                    role: m.role === "system" ? "Agent" : "User",
+                    content: m.text
+                }));
+                setMessages(formatted);
+            } catch (err) {
+                console.error("Error fetching messages:", err);
+                setMessages([]);
+            }
+        };
+
+        fetchMessages();
+    }, [selectedChat]);
+
+
     return (
         <div className="learn-container">
             <div className="learn-content">
-                <ChatList className="chat-list" chats={test_chats} />
+                <ChatList
+                    className="chat-list"
+                    chats={chats}
+                    selectedChat={selectedChat}
+                    setSelectedChat={setSelectedChat}
+                    setChats={setChats}
+                />
                 <div className="conversation-container">
                     <TextDisplay
                         messages={messages}

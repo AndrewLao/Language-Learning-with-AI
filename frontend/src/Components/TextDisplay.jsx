@@ -2,7 +2,7 @@ import "./TextDisplay.css";
 import { useEffect, useRef } from "react";
 
 
-const TextDisplay = ({ messages, assistantName = "Assistant" }) => {
+const TextDisplay = ({ messages, assistantName = "Agent" }) => {
     const bottomRef = useRef(null);
 
     useEffect(() => {
@@ -13,7 +13,7 @@ const TextDisplay = ({ messages, assistantName = "Assistant" }) => {
 
 
     const getSpeakerName = (role) => {
-        return role === "user" ? "You" : assistantName;
+        return role === "User" ? "You" : assistantName;
     };
 
     return (
@@ -21,7 +21,7 @@ const TextDisplay = ({ messages, assistantName = "Assistant" }) => {
             {messages.map((msg, index) => (
                 <div
                     key={index}
-                    className={`text-display-container ${msg.role === 'user' ? 'user' : 'assistant'}`}
+                    className={`text-display-container ${msg.role === 'User' ? 'User' : 'Agent'}`}
                 >
                     <span className="speaker-label">{getSpeakerName(msg.role)}</span>
                     <p>{msg.content}</p>

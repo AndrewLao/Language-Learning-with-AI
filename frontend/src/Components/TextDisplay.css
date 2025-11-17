@@ -30,13 +30,13 @@
     white-space: pre-line;
 }
 
-.text-display-container.user {
+.text-display-container.User {
     margin-left: auto;
     background: #14532d;
     color: #d1fae5;
 }
 
-.text-display-container.assistant {
+.text-display-container.Agent {
     margin-right: auto;
     background: #1e293b;
     color: #e2e8f0;
