@@ -39,3 +39,88 @@
 .add-chat {
     margin-bottom: 1em;
 }
+
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+/* Modal Card */
+.modal-card {
+    background: #1e293b;
+    color: white;
+    padding: 2em;
+    border-radius: 12px;
+    width: 30rem;
+    max-width: 109%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25em;
+    text-align: center;
+    align-items: center;
+}
+
+/* Input */
+.modal-input {
+    width: 80%;
+    padding: 0.75em;
+    border-radius: 8px;
+    border: 1px solid #3b4252;
+    background: #2a3444;
+    color: white;
+    font-size: 1rem;
+}
+
+.modal-input:focus {
+    border-color: #646cff;
+    outline: none;
+}
+
+/* Buttons Container */
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1em;
+}
+
+/* Create Button */
+.modal-create {
+    background: #4f8cff;
+    border: none;
+    padding: 0.6em 1.2em;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+    font-size: 1rem;
+}
+
+.modal-create:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Cancel Button */
+.modal-cancel {
+    background: #374151;
+    border: none;
+    padding: 0.6em 1.2em;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+    font-size: 1rem;
+}
+
+.modal-cancel:hover {
+    background: #4b5563;
+}

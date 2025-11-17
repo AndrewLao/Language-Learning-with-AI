@@ -6,25 +6,59 @@
     margin-top: 1em;
 }
 
-.textbox-input {
-    width: 100%;
-    min-height: 2.5em;
-    max-height: 8em;
-    resize: none;
-    padding: 0.75em 1em;
-    font-size: 1.1em;
-    border-radius: 8px;
-    border: 1px solid #213547;
+.textbox-wrapper {
+    position: relative;
+    width: 80%;
     background-color: #213547;
-    color: #fff;
+    border: 1px solid #213547;
+    border-radius: 8px;
+    padding: 0.5em 0.75em;
+    display: flex;
+    align-items: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    outline: none;
-    transition: border-color 0.2s;
-    font-family: inherit;
-    overflow-y: auto;
 }
 
-.textbox-input:focus {
+.send-button:hover {
+    background: #6ea0ff;
+}
+
+.send-button:disabled {
+    background: #3a3f51;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.send-button {
+    position: absolute;
+    right: 0.6em;
+    bottom: 1.4em;
+    background: #4f8cff;
+    border: none;
+    padding: 0.3em 0.55em;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s;
+}
+
+.textbox-input {
+    width: 100%;
+    max-height: 8em;
+    min-height: 2.5em;
+    padding-right: 2.2em;
+    background: transparent;
+    border: none;
+    resize: none;
+    color: white;
+    font-size: 1.1em;
+    line-height: 1.4em;
+    outline: none;
+    overflow-y: auto;
+    font-family: inherit;
+}
+
+.textbox-wrapper:focus-within {
     border-color: #646cff;
     background-color: #2a3b4d;
 }

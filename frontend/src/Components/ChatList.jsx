@@ -14,6 +14,8 @@ const ChatList = ({
     const [localChats, setLocalChats] = useState(chats);
     const [loading, setLoading] = useState(false);
     const [loadingInitial, setLoadingInitial] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [newChatName, setNewChatName] = useState("");
 
     const fetchChats = async () => {
         setLoadingInitial(true);
@@ -22,9 +24,14 @@ const ChatList = ({
                 `${API_BASE}/users/chats/user/${encodeURIComponent(userId)}`,
                 { headers: { 'Content-Type': 'application/json' } }
             );
-            const data = Array.isArray(resp.data) ? resp.data : [];
-            setLocalChats(data);
-            setChats(data); // inform parent if provided
+            let fetched = Array.isArray(resp.data) ? resp.data : [];
+            fetched = fetched.sort((a, b) => {
+                const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+                const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+                return timeB - timeA;
+            });
+            setLocalChats(fetched);
+            setChats(fetched);
         } catch (err) {
             if (err.response && err.response.status === 404) {
                 setLocalChats([]);
@@ -43,19 +50,20 @@ const ChatList = ({
         return () => { mounted = false; };
     }, []); // run once on mount
 
-    const handleAddChat = async () => {
-        const name = prompt('Name for new chat', 'New Chat') || 'New Chat';
-        const tempId = `temp-${Date.now()}`;
+    const handleCreateChat = async (name) => {
+        if (!name.trim()) return;
 
+        setLoading(true);
+
+        const tempId = `temp-${Date.now()}`;
         const optimisticChat = {
             chat_id: tempId,
             chat_name: name,
             created_at: new Date().toISOString(),
         };
 
-        setLocalChats(prev => [...(prev || []), optimisticChat]);
-        setChats(prev => [...(prev || []), optimisticChat]);
-        setLoading(true);
+        setLocalChats(prev => [...prev, optimisticChat]);
+        setChats(prev => [...prev, optimisticChat]);
 
         try {
             const resp = await axios.post(
@@ -77,33 +85,30 @@ const ChatList = ({
                 created_at: created.created_at
             };
 
-            // replace optimistic chat with server-created chat
             setLocalChats(prev =>
-                (prev || []).map(c => (c.chat_id === tempId ? normalized : c))
+                prev.map(c => (c.chat_id === tempId ? normalized : c))
             );
             setChats(prev =>
-                (prev || []).map(c => (c.chat_id === tempId ? normalized : c))
+                prev.map(c => (c.chat_id === tempId ? normalized : c))
             );
-            setSelectedChat && setSelectedChat(normalized.chat_id);
+            setSelectedChat(normalized.chat_id);
 
-            // refresh to ensure ordering/metadata matches server
             await fetchChats();
-
         } catch (err) {
             console.error('Failed to create chat', err);
-
-            // remove optimistic chat on failure
-            setChats(prev => (prev || []).filter(c => c.chat_id !== tempId));
-            alert('Unable to create chat. Please try again.');
+            setLocalChats(prev => prev.filter(c => c.chat_id !== tempId));
         } finally {
             setLoading(false);
+            setShowModal(false);
+            setNewChatName("");
         }
     };
+
 
     return (
         <div className="chat-list">
             <h2>Chat List</h2>
-            <button className='add-chat' onClick={handleAddChat} disabled={loading}>
+            <button className='add-chat' onClick={() => setShowModal(true)}>
                 {loading ? 'Creating…' : '+ New Chat'}
             </button>
             {loadingInitial ? (
@@ -129,6 +134,44 @@ const ChatList = ({
                     );
                 })
             )}
+
+            {showModal && (
+                <div className="modal-overlay">
+                    <div className="modal-card">
+                        <h3>Create New Chat</h3>
+
+                        <input
+                            type="text"
+                            className="modal-input"
+                            placeholder="Chat name..."
+                            value={newChatName}
+                            onChange={(e) => setNewChatName(e.target.value)}
+                            autoFocus
+                        />
+
+                        <div className="modal-buttons">
+                            <button
+                                className="modal-create"
+                                disabled={loading || newChatName.trim() === ""}
+                                onClick={() => handleCreateChat(newChatName)}
+                            >
+                                {loading ? "Creating..." : "Create"}
+                            </button>
+
+                            <button
+                                className="modal-cancel"
+                                onClick={() => {
+                                    setShowModal(false);
+                                    setNewChatName("");
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };
