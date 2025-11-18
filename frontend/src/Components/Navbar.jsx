@@ -10,13 +10,14 @@ const Navbar = () => {
     localStorage.removeItem('idToken');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('cognitoSub');
 
     // Redirect to the login page
     navigate('/login');
   };
 
   const navLinks = [
-    { to: "/", label: "Learn" },
+    { to: "/learn", label: "Learn" },
     { to: "/write", label: "Write" },
     { to: "/profile", label: "Profile" },
   ];

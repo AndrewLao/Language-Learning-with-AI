@@ -15,24 +15,35 @@ const Learn = () => {
     const [selectedChat, setSelectedChat] = useState(null);
     const [chats, setChats] = useState([]);
 
+    const cleanAgentText = (text) => {
+        if (!text) return "";
+
+        return text
+            .replace(/\r\n/g, "\n")               // normalize CRLF → LF
+            .replace(/\n{3,}/g, "\n\n")           // collapse 3+ newlines → 2
+            .replace(/[ \t]+\n/g, "\n")           // trim trailing whitespace before newlines
+            .replace(/\n[ \t]+/g, "\n")           // trim whitespace after newlines
+            .replace(/\s+$/g, "")                 // trim ending whitespace
+            .trim();
+    };
+
     const handleSend = async (text) => {
         if (!text.trim() || !selectedChat || loading) return;
 
         setLoading(true);
 
-        // Immediately show the user message (local UI)
         const userMessage = { role: "User", content: text };
         setMessages(prev => [...prev, userMessage]);
 
         try {
             const res = await axios.post(`${API_INVOKE_AGENT}`, {
-                user_id: localStorage.getItem("userId") || "test_user",
+                user_id: localStorage.getItem('cognitoSub') || 'test_user',
                 chat_id: selectedChat,
                 input_string: text
             });
 
-            const reply = res.data?.result ?? "";
-
+            const rawReply = res.data?.result ?? "";
+            const reply = cleanAgentText(rawReply);
             const agentMessage = { role: "Agent", content: reply };
             setMessages(prev => [...prev, agentMessage]);
 
@@ -84,10 +95,19 @@ const Learn = () => {
                     setChats={setChats}
                 />
                 <div className="conversation-container">
-                    <TextDisplay
-                        messages={messages}
-                    />
-                    <LearnTextBox onSend={handleSend} loading={loading} />
+                    {selectedChat ? (
+                        <>
+                            <TextDisplay messages={messages} />
+                            <LearnTextBox
+                                onSend={handleSend}
+                                loading={loading}
+                            />
+                        </>
+                    ) : (
+                        <div className="no-chat-selected-message">
+                            <h2>Create a chat to begin</h2>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

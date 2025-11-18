@@ -9,7 +9,7 @@ const ChatList = ({
     selectedChat,
     setSelectedChat = () => { },
     setChats = () => { },
-    userId = localStorage.getItem('userId') || 'test_user' }) => {
+    userId = localStorage.getItem('cognitoSub') || 'test_user' }) => {
 
     const [localChats, setLocalChats] = useState(chats);
     const [loading, setLoading] = useState(false);
