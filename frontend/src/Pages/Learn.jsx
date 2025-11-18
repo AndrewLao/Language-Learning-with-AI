@@ -84,6 +84,12 @@ const Learn = () => {
     }, [selectedChat]);
 
 
+    useEffect(() => {
+        if (chats.length > 0 && !selectedChat) {
+            setSelectedChat(chats[0].chat_id);
+        }
+    }, [chats, selectedChat]);
+
     return (
         <div className="learn-container">
             <div className="learn-content">
@@ -105,7 +111,7 @@ const Learn = () => {
                         </>
                     ) : (
                         <div className="no-chat-selected-message">
-                            <h2>Create a chat to begin</h2>
+                            <h2>Create or Select a chat to begin</h2>
                         </div>
                     )}
                 </div>
