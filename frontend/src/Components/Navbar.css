@@ -36,6 +36,7 @@
   padding: 1rem;
   font-weight: bold;
   margin: 10px 0;
+  border-radius: 0.5em;
   transition: background-color 0.3s ease;
 }
 
