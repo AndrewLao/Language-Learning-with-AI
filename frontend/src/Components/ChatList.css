@@ -2,10 +2,9 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    background: #213547;
+    background: #031D31;
     color: #fff;
     padding-left: 1em;
-    margin-left: 2em;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     overflow-y: auto;
     scrollbar-width: thin;
@@ -18,13 +17,14 @@
 }
 
 .chat-item {
-    background: #031D31;
+    background: #213547;
     border-radius: 6px;
     padding: 0.75em 1em;
     margin-bottom: 0.75em;
     width: 80%;
     cursor: pointer;
     transition: background 0.2s;
+    font-weight: bold;
 }
 
 .chat-item:hover {
@@ -32,7 +32,7 @@
 }
 
 .chat-item.selected {
-    background: #5d6f88;
+    background: #646cff;
     color: #fff;
 }
 

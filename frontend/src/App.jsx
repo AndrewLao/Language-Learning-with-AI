@@ -9,9 +9,8 @@ import Banner from './Components/Banner.jsx';
 import Dashboard from './Pages/Dashboard.jsx';
 import Learn from './Pages/Learn.jsx';
 import Profile from './Pages/Profile.jsx';
-
-// Document Editor
-import Write from './DocumentEditor/Write.jsx';
+import Quiz from './Pages/Quiz.jsx';
+import Write from './Pages/Write.jsx';
 
 // Authentication pages and logic
 import Login from './Auth/Login.jsx';
@@ -35,6 +34,7 @@ function AppWrapper() {
           <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
           <Route path="/write" element={<ProtectedRoute><Write /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/quizzes" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           {/* <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /> */}

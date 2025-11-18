@@ -2,12 +2,13 @@
     display: flex;
     flex-direction: column;
     max-width: 80%;
+    min-width: 80%;
     margin: 0 auto;
     gap: 1em;
     padding: 1em;
     overflow-y: auto;
     max-height: 100vh;
-    background-color: #031D31;
+    background-color: #213547;
     border-radius: 1em;
     flex: 1 1 auto;
     max-height: 100%;

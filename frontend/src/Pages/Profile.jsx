@@ -1,181 +1,287 @@
-import "./Profile.css"
+import "./Profile.css";
 import { useState } from "react";
 
-const initialProfile = {
-    profilePicture: "https://ui-avatars.com/api/?name=User&background=213547&color=fff",
-    name: "John Doe",
-    email: "johndoe@email.com",
-    password: "********"
+const checkPassword = (password) => {
+    const missingCriteria = [];
+    if (password.length < 8) missingCriteria.push('at least 8 characters');
+    if (!/[A-Z]/.test(password)) missingCriteria.push('an uppercase letter');
+    if (!/[a-z]/.test(password)) missingCriteria.push('a lowercase letter');
+    if (!/\d/.test(password)) missingCriteria.push('a number');
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password))
+        missingCriteria.push('a special character');
+    return missingCriteria;
 };
 
+const defaultPrefs = [
+    "Movies",
+    "Books",
+    "Games",
+    "Music",
+    "Anime",
+    "Fitness",
+    "Travel",
+    "Cooking",
+    "Technology",
+    "Art",
+    "Outdoors",
+    "Pets",
+    "Podcasts",
+    "Photography"
+];
+
 const Profile = () => {
-    const [profile, setProfile] = useState(initialProfile);
-    const [editField, setEditField] = useState(null);
-    const [form, setForm] = useState(profile);
-    const [confirm, setConfirm] = useState({ email: "", password: "" });
-    const [error, setError] = useState({ email: "", password: "" });
+    /* ===================== SETTINGS STATE ===================== */
+    const [profile, setProfile] = useState({
+        picture: "https://ui-avatars.com/api/?name=User&background=213547&color=fff",
+        name: "John Doe",
+        email: "example@email.com",
+    });
 
-    const handleEdit = (field) => {
-        setEditField(field);
-        setForm(profile);
-        setConfirm({ email: "", password: "" });
-        setError({ email: "", password: "" });
+    const [editing, setEditing] = useState(null); // name | email | password | picture
+    const [form, setForm] = useState({});
+    const [emailConfirm, setEmailConfirm] = useState("");
+    const [passwordConfirm, setPasswordConfirm] = useState("");
+    const [passwordErrors, setPasswordErrors] = useState([]);
+
+    /* ===================== PREFERENCES STATE ===================== */
+    const [selectedPrefs, setSelectedPrefs] = useState([]);
+    const [prefDraft, setPrefDraft] = useState([]);
+    const [editingPrefs, setEditingPrefs] = useState(false);
+
+    /* ===================== SETTINGS HANDLERS ===================== */
+    const startEdit = (field) => {
+        setEditing(field);
+        setForm({ ...profile });
+        setEmailConfirm("");
+        setPasswordConfirm("");
+        setPasswordErrors([]);
     };
 
-    const handleChange = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-    };
-
-    const handleConfirmChange = (e) => {
-        setConfirm({ ...confirm, [e.target.name]: e.target.value });
-    };
-
-    const handleSave = (field) => {
-        if (field === "email" && form.email !== confirm.email) {
-            setError({ ...error, email: "Emails do not match." });
-            return;
+    const handleSaveChanges = () => {
+        if (editing === "email") {
+            if (form.email !== emailConfirm) {
+                alert("Emails do not match.");
+                return;
+            }
         }
-        if (field === "password" && form.password !== confirm.password) {
-            setError({ ...error, password: "Passwords do not match." });
-            return;
+
+        if (editing === "password") {
+            if (form.password !== passwordConfirm) {
+                alert("Passwords do not match.");
+                return;
+            }
+            const errors = checkPassword(form.password);
+            if (errors.length > 0) {
+                setPasswordErrors(errors);
+                return;
+            }
         }
-        setProfile({ ...profile, [field]: form[field] });
-        setEditField(null);
-        setError({ email: "", password: "" });
+
+        if (editing === "picture") {
+            setProfile({ ...profile, picture: form.picture });
+        } else if (editing === "name") {
+            setProfile({ ...profile, name: form.name });
+        } else if (editing === "email") {
+            setProfile({ ...profile, email: form.email });
+        } else if (editing === "password") {
+            alert("Password successfully changed! (Not actually saved — backend needed)");
+        }
+
+        setEditing(null);
     };
 
-    const handleCancel = () => {
-        setEditField(null);
-        setConfirm({ email: "", password: "" });
+    const cancelEdit = () => {
+        setEditing(null);
+        setPasswordErrors([]);
     };
 
-    const handleDeleteAccount = () => {
-        alert("Account deletion not implemented.");
+    /* ===================== PREFERENCE HANDLERS ===================== */
+    const togglePref = (pref) => {
+        if (prefDraft.includes(pref)) {
+            setPrefDraft(prefDraft.filter((p) => p !== pref));
+        } else {
+            setPrefDraft([...prefDraft, pref]);
+        }
+    };
+
+    const savePrefs = () => {
+        setSelectedPrefs(prefDraft);
+        setEditingPrefs(false);
+    };
+
+    const cancelPrefs = () => {
+        setPrefDraft(selectedPrefs);
+        setEditingPrefs(false);
     };
 
     return (
-        <div className="profile-container">
-            <div className="profile-content">
+        <div className="profile-page">
+
+            {/* LEFT: SETTINGS CARD */}
+            <div className="settings-card">
                 <h1>Settings</h1>
-                <div className="profile-row">
-                    <img
-                        src={profile.profilePicture}
-                        alt="Profile"
-                        className="profile-picture"
-                    />
-                    {editField === "profilePicture" ? (
-                        <>
+
+                {/* PROFILE PICTURE */}
+                <div className="setting-row">
+                    <img src={profile.picture} className="profile-pic" />
+                    {editing === "picture" ? (
+                        <div className="edit-block">
                             <input
                                 type="text"
-                                name="profilePicture"
-                                value={form.profilePicture}
-                                onChange={handleChange}
-                                className="profile-input"
+                                placeholder="Image URL"
+                                value={form.picture}
+                                onChange={(e) => setForm({ ...form, picture: e.target.value })}
                             />
-                            <button className="profile-btn" onClick={() => handleSave("profilePicture")}>Save</button>
-                            <button className="profile-btn" onClick={handleCancel}>Cancel</button>
-                        </>
+                            <div className="btn-row">
+                                <button onClick={handleSaveChanges}>Save</button>
+                                <button onClick={cancelEdit}>Cancel</button>
+                            </div>
+                        </div>
                     ) : (
-                        <button className="profile-btn" onClick={() => handleEdit("profilePicture")}>Change Picture</button>
+                        <button onClick={() => startEdit("picture")}>Change</button>
                     )}
                 </div>
-                <div className="profile-row">
-                    <label className="profile-label">Name:</label>
-                    {editField === "name" ? (
-                        <>
+
+                {/* NAME */}
+                <h2>Name</h2>
+                <div className="setting-row">
+                    {editing === "name" ? (
+                        <div className="edit-block">
                             <input
                                 type="text"
-                                name="name"
                                 value={form.name}
-                                onChange={handleChange}
-                                className="profile-input"
+                                onChange={(e) => setForm({ ...form, name: e.target.value })}
                             />
-                            <button className="profile-btn" onClick={() => handleSave("name")}>Save</button>
-                            <button className="profile-btn" onClick={handleCancel}>Cancel</button>
-                        </>
+                            <div className="btn-row">
+                                <button onClick={handleSaveChanges}>Save</button>
+                                <button onClick={cancelEdit}>Cancel</button>
+                            </div>
+                        </div>
                     ) : (
                         <>
-                            <span style={{ flex: 1 }}>{profile.name}</span>
-                            <button className="profile-btn" onClick={() => handleEdit("name")}>Edit</button>
+                            <span>{profile.name}</span>
+                            <button onClick={() => startEdit("name")}>Edit</button>
                         </>
                     )}
                 </div>
-                <div className="profile-row">
-                    <label className="profile-label">Email:</label>
-                    {editField === "email" ? (
-                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.5em" }}>
+
+                {/* EMAIL */}
+                <h2>Email</h2>
+                <div className="setting-row">
+                    {editing === "email" ? (
+                        <div className="edit-block">
                             <input
                                 type="email"
-                                name="email"
-                                value={form.email}
-                                onChange={handleChange}
-                                className="profile-input"
                                 placeholder="New email"
+                                value={form.email}
+                                onChange={(e) => setForm({ ...form, email: e.target.value })}
                             />
                             <input
                                 type="email"
-                                name="email"
-                                value={confirm.email}
-                                onChange={handleConfirmChange}
-                                className="profile-input"
                                 placeholder="Confirm new email"
+                                value={emailConfirm}
+                                onChange={(e) => setEmailConfirm(e.target.value)}
                             />
-                            {error.email && (
-                                <span className="profile-error">{error.email}</span>
-                            )}
-                            <div style={{ display: "flex", gap: "0.5em", marginTop: "0.5em" }}>
-                                <button className="profile-btn" onClick={() => handleSave("email")}>Save</button>
-                                <button className="profile-btn" onClick={handleCancel}>Cancel</button>
+                            <div className="btn-row">
+                                <button onClick={handleSaveChanges}>Save</button>
+                                <button onClick={cancelEdit}>Cancel</button>
                             </div>
                         </div>
                     ) : (
                         <>
-                            <span style={{ flex: 1 }}>{profile.email}</span>
-                            <button className="profile-btn" onClick={() => handleEdit("email")}>Edit</button>
+                            <span>{profile.email}</span>
+                            <button onClick={() => startEdit("email")}>Edit</button>
                         </>
                     )}
                 </div>
-                <div className="profile-row">
-                    <label className="profile-label">Password:</label>
-                    {editField === "password" ? (
-                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.5em" }}>
+
+                {/* PASSWORD */}
+                <h2>Password</h2>
+                <div className="setting-row">
+                    {editing === "password" ? (
+                        <div className="edit-block">
                             <input
                                 type="password"
-                                name="password"
-                                value={form.password}
-                                onChange={handleChange}
-                                className="profile-input"
                                 placeholder="New password"
+                                value={form.password || ""}
+                                onChange={(e) => {
+                                    const pwd = e.target.value;
+                                    setForm({ ...form, password: pwd });
+                                    setPasswordErrors(checkPassword(pwd));
+                                }}
                             />
                             <input
                                 type="password"
-                                name="password"
-                                value={confirm.password}
-                                onChange={handleConfirmChange}
-                                className="profile-input"
-                                placeholder="Confirm new password"
+                                placeholder="Confirm password"
+                                value={passwordConfirm}
+                                onChange={(e) => setPasswordConfirm(e.target.value)}
                             />
-                            {error.password && (
-                                <span className="profile-error">{error.password}</span>
+
+                            {passwordErrors.length > 0 && (
+                                <ul className="password-errors">
+                                    {passwordErrors.map((err, i) => (
+                                        <li key={i}>Missing: {err}</li>
+                                    ))}
+                                </ul>
                             )}
-                            <div style={{ display: "flex", gap: "0.5em", marginTop: "0.5em" }}>
-                                <button className="profile-btn" onClick={() => handleSave("password")}>Save</button>
-                                <button className="profile-btn" onClick={handleCancel}>Cancel</button>
+
+                            <div className="btn-row">
+                                <button onClick={handleSaveChanges}>Save</button>
+                                <button onClick={cancelEdit}>Cancel</button>
                             </div>
                         </div>
                     ) : (
                         <>
-                            <span style={{ flex: 1 }}>{profile.password}</span>
-                            <button className="profile-btn" onClick={() => handleEdit("password")}>Edit</button>
+                            <span>********</span>
+                            <button onClick={() => startEdit("password")}>Edit</button>
                         </>
                     )}
                 </div>
-                <button
-                    className="profile-btn delete"
-                    onClick={handleDeleteAccount}
-                >
-                    Delete Account
-                </button>
+            </div>
+
+            {/* RIGHT: PREFERENCES CARD */}
+            <div className="preferences-card">
+                <h1>Preferences</h1>
+
+                {!editingPrefs ? (
+                    <>
+                        <div className="pref-grid-display">
+                            {defaultPrefs.map((pref) => (
+                                <div key={pref} className="pref-display-item">
+                                    {selectedPrefs.includes(pref) ? (
+                                        <span className="pref-selected">✔ {pref}</span>
+                                    ) : (
+                                        <span className="pref-unselected">{pref}</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        <button onClick={() => setEditingPrefs(true)}>
+                            Edit Preferences
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <div className="pref-checkbox-grid">
+                            {defaultPrefs.map((p) => (
+                                <label key={p} className="pref-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={prefDraft.includes(p)}
+                                        onChange={() => togglePref(p)}
+                                    />
+                                    {p}
+                                </label>
+                            ))}
+                        </div>
+
+                        <div className="btn-row">
+                            <button onClick={savePrefs}>Confirm</button>
+                            <button onClick={cancelPrefs}>Cancel</button>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

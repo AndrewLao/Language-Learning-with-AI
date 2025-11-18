@@ -19,7 +19,9 @@ const Navbar = () => {
   const navLinks = [
     { to: "/learn", label: "Learn" },
     { to: "/write", label: "Write" },
+    { to: "/quizzes", label: "Quiz" },
     { to: "/profile", label: "Profile" },
+
   ];
 
   return (

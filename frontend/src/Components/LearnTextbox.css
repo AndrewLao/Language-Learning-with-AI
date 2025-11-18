@@ -9,7 +9,7 @@
 .textbox-wrapper {
     position: relative;
     width: 80%;
-    background-color: #213547;
+    background-color: #031D31;
     border: 1px solid #213547;
     border-radius: 8px;
     padding: 0.5em 0.75em;
@@ -60,7 +60,7 @@
 
 .textbox-wrapper:focus-within {
     border-color: #646cff;
-    background-color: #2a3b4d;
+    background-color: #15212c;
 }
 
 .textbox-input::-webkit-scrollbar {

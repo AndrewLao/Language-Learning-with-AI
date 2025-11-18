@@ -1,6 +1,6 @@
 import "./Write.css";
 import { useState } from "react";
-import RichTextEditor from "../Components/RichTextEditor";
+import RichTextEditor from "../Components/RichTextEditor"
 
 // Example data
 const writings = [
@@ -98,7 +98,7 @@ const Write = () => {
             </main>
 
             <aside className="writing-advice">
-                <h3 style={{ color: "#fff" }}>Feedback</h3>
+                <h2 style={{ color: "#fff" }}>Feedback</h2>
                 <div className="advice-placeholder">
                     {sampleFeedback.map((fb, idx) => (
                         <div
