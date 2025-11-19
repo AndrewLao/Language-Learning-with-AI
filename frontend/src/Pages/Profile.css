@@ -1,83 +1,143 @@
-.profile-container {
-    position: fixed;
+.profile-page {
+    display: flex;
+    position: relative;
     top: 4em;
-    /* height of the banner */
-    left: 250px;
-    /* width of the navbar */
-    right: 0;
-    bottom: 0;
+    left: 14.5em;
+    justify-content: left;
+    margin-bottom: 0;
+    margin-right: 0;
     height: calc(100vh - 4em);
     width: calc(100vw - 200px);
-    background: #667A8A;
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+    padding-left: 2em;;
+    flex-wrap: wrap;
+    overflow: auto;
+    background: #213547;
+    /* or your desired bg */
+    box-sizing: border-box;
 }
 
-.profile-content {
+.settings-card,
+.preferences-card {
     background: #031D31;
-    border-radius: 1em;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    max-width: 400px;
-    width: 100%;
-    margin: 2em auto;
-    padding: 2em 2em 3em 2em;
-    display: flex;
-    flex-direction: column;
-    gap: 2em;
+    border: 1px solid #213547;
+    padding: 1.5rem;
+    border-radius: 12px;
+    color: white;
 }
 
-.profile-row {
+.settings-card {
+    width: 25em;;
+    min-height: 40em;
+    max-height: 45em;
+    margin-left: 3em;
+}
+
+.settings-card input {
+    width: 100%;
+    padding: 0.75em 1em;
+    border-radius: 8px;
+    border: 1px solid #213547;
+    background-color: #334155;
+    color: white;
+    font-size: 1rem;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.settings-card input:focus {
+    outline: none;
+    border-color: #646cff;
+    background-color: #1f2937;
+}
+
+.preferences-card {
+    width: 25em;
+    min-height: 40em;
+    max-height: 45em;
+}
+
+.setting-row {
     display: flex;
     align-items: center;
-    gap: 1em;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
 }
 
-.profile-label {
-    width: 80px;
-    font-weight: bold;
-    color: #a5b4fc;
-}
-
-.profile-picture {
+.profile-pic {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    border: 2px solid #ffffff;
-    object-fit: cover;
+    border: 2px solid white;
 }
 
-.profile-input {
-    flex: 1;
-    padding: 0.5em 1em;
-    border-radius: 8px;
-    border: 1px solid #213547;
-    font-size: 1em;
-    background: #334155;
-    color: #fff;
+.edit-block input {
+    width: 100%;
+    margin-bottom: 0.5rem;
 }
 
-.profile-btn {
-    background: #646cff;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 0.5em 1.2em;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
+.btn-row {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
 }
 
-.profile-btn:hover {
-    background: #535bf2;
+.pref-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
 }
 
-.profile-btn.delete {
-    background: #b91c1c;
-    margin-top: 2em;
+.pref-selected-list,
+.pref-unselected-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem 0;
+    font-size: 1.4em;
 }
 
-.profile-btn.delete:hover {
-    background: #991b1b;
+.password-errors {
+    padding-left: 1rem;
+    margin: 0.5rem 0;
+    color: #fb7185;
+}
+
+
+/* Grid for display mode (2 columns) */
+.pref-grid-display {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.pref-display-item {
+    font-size: 1rem;
+}
+
+/* Selected Preferences */
+.pref-selected {
+    color: #4ade80;
+    /* green checkmark */
+    font-weight: 600;
+}
+
+/* Unselected Preferences */
+.pref-unselected {
+    opacity: 0.7;
+}
+
+/* Edit mode checkbox grid */
+.pref-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem 1rem;
+}
+
+.pref-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 1rem;
 }

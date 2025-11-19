@@ -54,26 +54,55 @@ const RichTextEditor = () => {
         document.execCommand("fontName", false, font);
     };
 
-    // Example: Font Color
-    const handleFontColor = (color) => {
-        document.execCommand("foreColor", false, color);
-    };
-
     const handleFontSize = (size) => {
         document.execCommand("fontSize", false, size);
     }
+
+    // Insert a tab (behave like a text editor) instead of moving focus
+    const handleKeyDown = (e) => {
+        if (e.key === "Tab") {
+            e.preventDefault();
+            const tab = "\t";
+            // Best-effort: use execCommand where supported
+            const usedExec = document.execCommand && document.execCommand("insertText", false, tab);
+            if (!usedExec) {
+                const sel = window.getSelection();
+                if (!sel || !sel.rangeCount) return;
+                const range = sel.getRangeAt(0);
+                // remove any selected content
+                range.deleteContents();
+                const node = document.createTextNode(tab);
+                range.insertNode(node);
+                // Move caret after inserted node
+                range.setStartAfter(node);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }
+    };
 
     return (
         <div className="rte-container">
             <div className="rte-toolbar">
                 <div className="rte-toolbar-group">
-                    <select onChange={e => handleFont(e.target.value)}>
+                    <select
+                        className="select-wrap"
+                        title="Font"
+                        aria-label="Font"
+                        onChange={e => handleFont(e.target.value)}
+                    >
                         <option value="Arial">Arial</option>
                         <option value="Times New Roman">Times New Roman</option>
                         <option value="Georgia">Georgia</option>
                         <option value="Courier New">Courier New</option>
                     </select>
-                    <select onChange={e => handleFontSize(e.target.value)}>
+                    <select
+                        className="select-wrap"
+                        title="Font Size"
+                        aria-label="Font Size"
+                        onChange={e => handleFontSize(e.target.value)}
+                    >
                         <option value="1">8pt</option>
                         <option value="2">10pt</option>
                         <option value="3" selected>12pt</option>
@@ -84,27 +113,26 @@ const RichTextEditor = () => {
                     </select>
                 </div>
                 <div className="rte-toolbar-group">
-                    <button onClick={handleBold}><b>B</b></button>
-                    <button onClick={handleItalic}><i>I</i></button>
-                    <button onClick={handleUnderline}><u>U</u></button>
-                    <button onClick={handleStrike}><s>S</s></button>
+                    <button onClick={handleBold} title="Bold (Ctrl/Cmd + B)" aria-label="Bold"><b>B</b></button>
+                    <button onClick={handleItalic} title="Italic (Ctrl/Cmd + I)" aria-label="Italic"><i>I</i></button>
+                    <button onClick={handleUnderline} title="Underline (Ctrl/Cmd + U)" aria-label="Underline"><u>U</u></button>
+                    <button onClick={handleStrike} title="Strikethrough" aria-label="Strikethrough"><s>S</s></button>
                 </div>
                 <div className="rte-toolbar-group">
-                    <button onClick={() => handleHeading(1)}>H1</button>
-                    <button onClick={() => handleHeading(2)}>H2</button>
+                    <button onClick={() => handleHeading(1)} title="Heading 1" aria-label="Heading 1">H1</button>
+                    <button onClick={() => handleHeading(2)} title="Heading 2" aria-label="Heading 2">H2</button>
                 </div>
                 <div className="rte-toolbar-group">
-                    <button onClick={handleBulletList}>• List</button>
-                    <button onClick={handleNumberList}>1. List</button>
+                    <button onClick={handleBulletList} title="Bulleted list" aria-label="Bulleted list">•••</button>
+                    <button onClick={handleNumberList} title="Numbered list" aria-label="Numbered list">1.2.3.</button>
                 </div>
                 <div className="rte-toolbar-group">
-                    <button onClick={() => handleJustify("Left")}>Left</button>
-                    <button onClick={() => handleJustify("Center")}>Center</button>
-                    <button onClick={() => handleJustify("Right")}>Right</button>
+                    <button onClick={() => handleJustify("Left")} title="Align left" aria-label="Align left">Left</button>
+                    <button onClick={() => handleJustify("Center")} title="Align center" aria-label="Align center">Center</button>
+                    <button onClick={() => handleJustify("Right")} title="Align right" aria-label="Align right">Right</button>
                 </div>
                 <div className="rte-toolbar-group">
-                    <button onClick={() => handleHighlight("yellow")}>Highlight</button>
-                    <button onClick={() => handleFontColor("red")}>A</button>
+                    <button onClick={() => handleHighlight("yellow")} title="Highlight" aria-label="Highlight">Highlight</button>
                 </div>
             </div>
             <div
@@ -112,6 +140,7 @@ const RichTextEditor = () => {
                 contentEditable
                 ref={editorRef}
                 suppressContentEditableWarning={true}
+                onKeyDown={handleKeyDown}
                 spellCheck={true}
             ></div>
         </div>

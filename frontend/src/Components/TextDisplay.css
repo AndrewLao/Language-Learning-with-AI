@@ -1,11 +1,14 @@
 .chat-wrapper {
     display: flex;
     flex-direction: column;
+    max-width: 80%;
+    min-width: 80%;
+    margin: 0 auto;
     gap: 1em;
     padding: 1em;
     overflow-y: auto;
     max-height: 100vh;
-    background-color: #031D31;
+    background-color: #213547;
     border-radius: 1em;
     flex: 1 1 auto;
     max-height: 100%;
@@ -30,16 +33,29 @@
     white-space: pre-line;
 }
 
-.text-display-container.user {
+.text-display-container.User {
     margin-left: auto;
-    background: #14532d;
+    background: #1e293b;
     color: #d1fae5;
+    padding-top: 0.2em;
+    padding-bottom: 0.4em;
 }
 
-.text-display-container.assistant {
+.text-display-container.Agent {
     margin-right: auto;
-    background: #1e293b;
+    padding: 0;
+    background: transparent !important;
+    border: none !important;
     color: #e2e8f0;
+    box-shadow: none !important;
+    font-size: 1.1rem;
+    line-height: 1.7;
+    max-width: 100%;
+}
+
+.text-display-container.Agent p {
+    margin: 0;
+    white-space: pre-wrap;
 }
 
 .speaker-label {
@@ -54,4 +70,76 @@
 
 .text-display-container.user .speaker-label {
     text-align: right;
+}
+
+
+/*
+Markdown Support 
+*/
+
+.markdown-body {
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+/* Paragraph spacing */
+.markdown-body p {
+    margin: 0.25em 0;
+}
+
+/* Headings */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+    margin: 0.5em 0 0.3em;
+    font-weight: bold;
+}
+
+/* Lists */
+.markdown-body ul,
+.markdown-body ol {
+    padding-left: 1.5em;
+    margin: 0.5em 0;
+}
+
+/* Inline code */
+.markdown-body code {
+    background: #1e293b;
+    padding: 0.15em 0.35em;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+/* Code blocks */
+.markdown-body pre code {
+    background: transparent;
+    padding: 0;
+}
+
+.markdown-body pre {
+    background: #0f172a;
+    padding: 1em;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid #1e293b;
+}
+
+/* Links */
+.markdown-body a {
+    color: #38bdf8;
+    text-decoration: underline;
+}
+
+/* Tables */
+.markdown-body table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+}
+
+.markdown-body th,
+.markdown-body td {
+    border: 1px solid #334155;
+    padding: 0.5em;
 }

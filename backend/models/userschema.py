@@ -6,6 +6,8 @@ from typing import List, Literal, Optional
 #Schema for simple chat message
 class SimpleMessageGet(BaseModel):
     input_string: str
+    user_id: str
+    chat_id: str
 
 class SimpleMessageResponse(BaseModel):
     result: str

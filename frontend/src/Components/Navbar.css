@@ -14,7 +14,7 @@
 .logo-section {
   display: flex;
   align-items: center;
-  margin-bottom: 1.5rem; /* Space between logo and navigation links */
+  margin-bottom: 0em;
 }
 
 .logo {
@@ -27,7 +27,7 @@
   color: white;
   font-size: 1.5rem;
   font-weight: bold;
-  margin: 0;
+  margin-top: 1em;
 }
 
 .vertical-navbar a {
@@ -36,15 +36,18 @@
   padding: 1rem;
   font-weight: bold;
   margin: 10px 0;
+  border-radius: 0.5em;
   transition: background-color 0.3s ease;
 }
 
 .vertical-navbar a:hover {
-  background-color: #334155;
+  background-color: #646cff;
+  border-radius: 0.5em;
 }
 
 
 .vertical-navbar a.active {
-  background-color: #334155;
+  background-color: #646cff;
   color: #fff;
+  border-radius: 0.5em;
 }

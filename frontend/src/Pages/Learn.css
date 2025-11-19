@@ -1,14 +1,16 @@
 .learn-container {
     display: flex;
+    position: relative;
+    top: 4em;
+    left: 14.5em;
     justify-content: center;
-    margin-left: 200px;
-    margin-top: 4em;
     height: calc(100vh - 4em);
     width: calc(100vw - 200px);
     box-sizing: border-box;
     background-color: #667A8A;
     color: white;
     overflow-x: hidden;
+    margin: 0;
 }
 
 .learn-content {
@@ -18,17 +20,31 @@
     height: 100%;
 }
 
+.chat-list {
+    flex: 0 0 14rem;
+    width: 14rem;
+}
+
 .conversation-container {
     flex: 1 1 0;
-    background: #031D31;
+    background: #213547;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     padding: 2em;
-    margin: 0em 0em 0em 2em;
+    margin: 0em 0em 0em 0em;
     overflow: hidden;
     gap: 1em;
+}
+
+.no-chat-selected-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #888;
+    font-size: 1.2rem;
 }
 
 @media (max-width: 900px) {
