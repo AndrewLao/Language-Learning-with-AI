@@ -263,7 +263,23 @@ def download_document(user_id: str, doc_id: str, db_fs=Depends(get_db_fs)):
         raise HTTPException(status_code=404, detail="Document not found")
 
     gridout = fs.get(doc["gridfs_id"])
-    filename = f"/tmp/{doc['file_name']}"
-    with open(filename, "wb") as f:
+    tmp_path = Path(tempfile.gettempdir()) / doc["file_name"]
+    with open(tmp_path, "wb") as f:
         f.write(gridout.read())
-    return FileResponse(filename, filename=doc["file_name"])
+    return FileResponse(tmp_path, filename=doc["file_name"])
+
+# Delete a specific document
+@router.delete("/documents/{user_id}/{doc_id}")
+def delete_document(user_id: str, doc_id: str, db_fs=Depends(get_db_fs)):
+    db, fs = db_fs
+    doc = db.user_documents.find_one({"user_id": user_id, "doc_id": doc_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Delete from GridFS
+    fs.delete(doc["gridfs_id"])
+    
+    # Delete metadata
+    db.user_documents.delete_one({"doc_id": doc_id})
+    
+    return {"message": "Document deleted successfully", "doc_id": doc_id}
