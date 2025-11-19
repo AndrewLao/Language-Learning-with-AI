@@ -28,7 +28,6 @@ function AppWrapper() {
       <>
         {showNavbar && <Navbar />}
         {showBanner && <Banner />}
-        {/* Auth logic currently ignored since cognito is turned off right now. Add after app finished.*/}
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
@@ -37,7 +36,6 @@ function AppWrapper() {
           <Route path="/quizzes" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          {/* <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /> */}
         </Routes>
       </>
     </>

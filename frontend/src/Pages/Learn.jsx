@@ -19,17 +19,19 @@ const Learn = () => {
         if (!text) return "";
 
         return text
-            .replace(/\r\n/g, "\n")               // normalize CRLF → LF
-            .replace(/\n{3,}/g, "\n\n")           // collapse 3+ newlines → 2
-            .replace(/[ \t]+\n/g, "\n")           // trim trailing whitespace before newlines
-            .replace(/\n[ \t]+/g, "\n")           // trim whitespace after newlines
-            .replace(/\s+$/g, "")                 // trim ending whitespace
+            .replace(/\r\n/g, "\n")               // Normalize CRLF → LF
+            .replace(/\r/g, "\n")                 // Normalize CR → LF
+            .replace(/[\u2028\u2029]/g, "\n")     // Remove Unicode line separators
+            .replace(/[ \t]+\n/g, "\n")           // Trim spaces before newline
+            .replace(/\n[ \t]+/g, "\n")           // Trim spaces after newline
+            .replace(/\n{3,}/g, "\n")             // Collapse 2+ newlines → 1
+            .replace(/^\n+|\n+$/g, "")            // Trim leading/trailing newlines
             .trim();
     };
 
     const handleSend = async (text) => {
         if (!text.trim() || !selectedChat || loading) return;
-
+        const currentChatId = selectedChat;
         setLoading(true);
 
         const userMessage = { role: "User", content: text };
@@ -38,14 +40,20 @@ const Learn = () => {
         try {
             const res = await axios.post(`${API_INVOKE_AGENT}`, {
                 user_id: localStorage.getItem('cognitoSub') || 'test_user',
-                chat_id: selectedChat,
+                chat_id: currentChatId,
                 input_string: text
             });
 
             const rawReply = res.data?.result ?? "";
             const reply = cleanAgentText(rawReply);
             const agentMessage = { role: "Agent", content: reply };
-            setMessages(prev => [...prev, agentMessage]);
+            // Safety check to make sure message doesn't go into different chat
+            setMessages(prev => {
+                if (selectedChat !== currentChatId) {
+                    return prev;
+                }
+                return [...prev, agentMessage];
+            });
 
         } catch (err) {
             console.error("Error invoking agent:", err);
