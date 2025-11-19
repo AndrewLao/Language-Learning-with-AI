@@ -1,8 +1,8 @@
-import uuid
-import requests
-import os
 from models.userschema import ChatSession, Message
+import os
 from pymongo import MongoClient
+import requests
+import uuid
 
 
 def save_chat_turn_sync(chat_id: str, text: str, role: str = "system"):

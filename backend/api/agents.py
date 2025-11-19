@@ -1,21 +1,22 @@
+# Please order alphabetically 
+from api.miscellanous import (
+    save_chat_turn_sync,
+    fetch_short_term_memories,
+    format_memory_context,
+)
 from dotenv import load_dotenv
 from fastapi import APIRouter
 import json
 from langgraph.graph import StateGraph, END, START
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
-from api.miscellanous import save_chat_turn_sync, fetch_short_term_memories, format_memory_context
 from models.userschema import SimpleMessageGet, SimpleMessageResponse
 import os
 from pymongo import MongoClient
-from qdrant_client import QdrantClient
-from api.miscellanous import save_chat_turn_sync
-from services.rag_store_qdrant import get_qdrant_client, query_qdrant
-from models.userschema import SimpleMessageGet, SimpleMessageResponse
-from pymongo import MongoClient
 from qdrant_client.http.models import PointStruct
-import uuid
+from services.rag_store_qdrant import get_qdrant_client, query_qdrant
 import time
+import uuid
 
 load_dotenv()
 
