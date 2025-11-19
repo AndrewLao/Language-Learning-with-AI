@@ -72,14 +72,13 @@
     text-align: right;
 }
 
-
 /*
 Markdown Support 
 */
 
 .markdown-body {
     font-size: 1.05rem;
-    line-height: 1;
+    line-height: 1.5;
 }
 
 /* Paragraph spacing */
