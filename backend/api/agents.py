@@ -36,10 +36,7 @@ class ManagerAgent:
         self.agents = {"general_agent": self.general_agent}
         self.router = self.default_router
         self.llm = ChatOpenAI(model=llm_model)
-        self.db_client = QdrantClient(
-            url=os.environ.get("QDRANT_URL"),
-            api_key=os.environ.get("QDRANT_API_KEY"),
-        )
+        self.db_client = get_qdrant_client()
         
         self.mongo_client = MongoClient(os.environ.get("ATLAS_URI"))
         
