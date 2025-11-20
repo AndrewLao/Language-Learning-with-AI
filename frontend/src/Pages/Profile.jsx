@@ -1,16 +1,9 @@
 import "./Profile.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 
-const checkPassword = (password) => {
-    const missingCriteria = [];
-    if (password.length < 8) missingCriteria.push('at least 8 characters');
-    if (!/[A-Z]/.test(password)) missingCriteria.push('an uppercase letter');
-    if (!/[a-z]/.test(password)) missingCriteria.push('a lowercase letter');
-    if (!/\d/.test(password)) missingCriteria.push('a number');
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password))
-        missingCriteria.push('a special character');
-    return missingCriteria;
-};
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+const userId = localStorage.getItem('cognitoSub') || 'test_user';
 
 const defaultPrefs = [
     "Movies",
@@ -30,72 +23,77 @@ const defaultPrefs = [
 ];
 
 const Profile = () => {
-    /* ===================== SETTINGS STATE ===================== */
     const [profile, setProfile] = useState({
         picture: "https://ui-avatars.com/api/?name=User&background=213547&color=fff",
         name: "John Doe",
         email: "example@email.com",
     });
 
-    const [editing, setEditing] = useState(null); // name | email | password | picture
+    const [editing, setEditing] = useState(null);
     const [form, setForm] = useState({});
-    const [emailConfirm, setEmailConfirm] = useState("");
-    const [passwordConfirm, setPasswordConfirm] = useState("");
-    const [passwordErrors, setPasswordErrors] = useState([]);
+    // const [emailConfirm, setEmailConfirm] = useState("");
 
-    /* ===================== PREFERENCES STATE ===================== */
     const [selectedPrefs, setSelectedPrefs] = useState([]);
     const [prefDraft, setPrefDraft] = useState([]);
     const [editingPrefs, setEditingPrefs] = useState(false);
 
-    /* ===================== SETTINGS HANDLERS ===================== */
+    // Load Settings Data
+    useEffect(() => {
+        async function fetchProfile() {
+            try {
+                const resp = await axios.get(
+                    `${API_BASE}/users/profiles/${encodeURIComponent(userId)}`,
+                    { headers: { 'Content-Type': 'application/json' } }
+                );
+                setProfile({
+                    picture: "https://ui-avatars.com/api/?name=User&background=213547&color=fff",
+                    name: resp.data.username,
+                    email: resp.data.email
+                });
+
+                if (resp.data.preferences) {
+                    setSelectedPrefs(resp.data.preferences);
+                    setPrefDraft(resp.data.preferences);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        fetchProfile();
+    }, []);
+
     const startEdit = (field) => {
         setEditing(field);
         setForm({ ...profile });
-        setEmailConfirm("");
-        setPasswordConfirm("");
-        setPasswordErrors([]);
+        // setEmailConfirm("");
     };
 
-    const handleSaveChanges = () => {
-        if (editing === "email") {
-            if (form.email !== emailConfirm) {
-                alert("Emails do not match.");
-                return;
-            }
-        }
+    const handleSaveChanges = async () => {
+        if (!profile) return;
 
-        if (editing === "password") {
-            if (form.password !== passwordConfirm) {
-                alert("Passwords do not match.");
-                return;
-            }
-            const errors = checkPassword(form.password);
-            if (errors.length > 0) {
-                setPasswordErrors(errors);
-                return;
-            }
-        }
+        const payload = {};
+        if (editing === "name") payload.username = form.name;
 
-        if (editing === "picture") {
-            setProfile({ ...profile, picture: form.picture });
-        } else if (editing === "name") {
-            setProfile({ ...profile, name: form.name });
-        } else if (editing === "email") {
-            setProfile({ ...profile, email: form.email });
-        } else if (editing === "password") {
-            alert("Password successfully changed! (Not actually saved — backend needed)");
-        }
+        try {
+            const resp = await axios.patch(
+                `${API_BASE}/users/profiles/${encodeURIComponent(userId)}`,
+                payload,
+                { headers: { 'Content-Type': 'application/json' } }
+            );
 
-        setEditing(null);
+            setProfile(resp.data);
+            setEditing(null);
+            window.location.reload();
+        } catch (err) {
+            console.error("Profile update failed:", err);
+            alert("Failed to update profile");
+        }
     };
 
     const cancelEdit = () => {
         setEditing(null);
-        setPasswordErrors([]);
     };
 
-    /* ===================== PREFERENCE HANDLERS ===================== */
     const togglePref = (pref) => {
         if (prefDraft.includes(pref)) {
             setPrefDraft(prefDraft.filter((p) => p !== pref));
@@ -117,12 +115,10 @@ const Profile = () => {
     return (
         <div className="profile-page">
 
-            {/* LEFT: SETTINGS CARD */}
             <div className="settings-card">
-                <h1>Settings</h1>
+                <h1>User Profile</h1>
 
-                {/* PROFILE PICTURE */}
-                <div className="setting-row">
+                {/* <div className="setting-row">
                     <img src={profile.picture} className="profile-pic" />
                     {editing === "picture" ? (
                         <div className="edit-block">
@@ -140,9 +136,8 @@ const Profile = () => {
                     ) : (
                         <button onClick={() => startEdit("picture")}>Change</button>
                     )}
-                </div>
+                </div> */}
 
-                {/* NAME */}
                 <h2>Name</h2>
                 <div className="setting-row">
                     {editing === "name" ? (
@@ -165,8 +160,11 @@ const Profile = () => {
                     )}
                 </div>
 
-                {/* EMAIL */}
                 <h2>Email</h2>
+                <div className="setting-row">
+                    <span>{profile.email}</span>
+                </div>
+                {/* <h2>Email</h2>
                 <div className="setting-row">
                     {editing === "email" ? (
                         <div className="edit-block">
@@ -193,53 +191,9 @@ const Profile = () => {
                             <button onClick={() => startEdit("email")}>Edit</button>
                         </>
                     )}
-                </div>
-
-                {/* PASSWORD */}
-                <h2>Password</h2>
-                <div className="setting-row">
-                    {editing === "password" ? (
-                        <div className="edit-block">
-                            <input
-                                type="password"
-                                placeholder="New password"
-                                value={form.password || ""}
-                                onChange={(e) => {
-                                    const pwd = e.target.value;
-                                    setForm({ ...form, password: pwd });
-                                    setPasswordErrors(checkPassword(pwd));
-                                }}
-                            />
-                            <input
-                                type="password"
-                                placeholder="Confirm password"
-                                value={passwordConfirm}
-                                onChange={(e) => setPasswordConfirm(e.target.value)}
-                            />
-
-                            {passwordErrors.length > 0 && (
-                                <ul className="password-errors">
-                                    {passwordErrors.map((err, i) => (
-                                        <li key={i}>Missing: {err}</li>
-                                    ))}
-                                </ul>
-                            )}
-
-                            <div className="btn-row">
-                                <button onClick={handleSaveChanges}>Save</button>
-                                <button onClick={cancelEdit}>Cancel</button>
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            <span>********</span>
-                            <button onClick={() => startEdit("password")}>Edit</button>
-                        </>
-                    )}
-                </div>
+                </div> */}
             </div>
 
-            {/* RIGHT: PREFERENCES CARD */}
             <div className="preferences-card">
                 <h1>Preferences</h1>
 
