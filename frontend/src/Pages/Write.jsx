@@ -1,15 +1,10 @@
+import axios from "axios";
 import "./Write.css";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import RichTextEditor from "../Components/RichTextEditor"
 
-// Example data
-const writings = [
-    { id: 1, title: "My First Essay", lastEdited: "2024-06-01" },
-    { id: 2, title: "Travel Reflections", lastEdited: "2024-06-10" },
-    { id: 3, title: "Language Learning Goals", lastEdited: "2024-06-15" },
-    { id: 4, title: "A Day at the Beach", lastEdited: "2024-06-16" },
-    { id: 5, title: "Favorite Books", lastEdited: "2024-06-17" },
-];
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+const userId = localStorage.getItem('cognitoSub') || 'test_user';
 
 const sampleFeedback = [
     {
@@ -31,11 +26,16 @@ const sampleFeedback = [
 ];
 
 const Write = () => {
-    const [selectedId, setSelectedId] = useState(writings[0].id);
     const [expanded, setExpanded] = useState([]);
     const [showNewTooltip, setShowNewTooltip] = useState(false);
     const [showUploadTooltip, setShowUploadTooltip] = useState(false);
-
+    const [documents, setDocuments] = useState([]);
+    const [selectedId, setSelectedId] = useState(null);
+    const fileInputRef = useRef(null);
+    const [pdfUrl, setPdfUrl] = useState(null);
+    const [viewMode, setViewMode] = useState("editor");
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const toggleExpand = (idx) => {
         setExpanded(expanded =>
@@ -45,6 +45,109 @@ const Write = () => {
         );
     };
 
+    useEffect(() => {
+        async function fetchDocuments() {
+            try {
+                const resp = await axios.get(
+                    `${API_BASE}/users/documents/${encodeURIComponent(userId)}`,
+                    { headers: { 'Content-Type': 'application/json' } }
+                );
+
+                setDocuments(resp.data.documents);
+
+                if (resp.data.documents.length > 0) {
+                    setSelectedId(resp.data.documents[0].doc_id);
+                }
+            } catch (err) {
+                console.error("Failed to load documents:", err);
+            }
+        }
+
+        fetchDocuments();
+    }, []);
+
+    useEffect(() => {
+        async function fetchPdf() {
+            if (!selectedId) return;
+            try {
+                const resp = await axios.get(
+                    `${API_BASE}/users/documents/${encodeURIComponent(userId)}/${encodeURIComponent(selectedId)}`,
+                    { responseType: "blob" }
+                );
+                const url = URL.createObjectURL(resp.data);
+                setPdfUrl(url);
+            } catch (err) {
+                console.error("Failed to fetch document:", err);
+            }
+        }
+        fetchPdf();
+    }, [selectedId]);
+
+    const handleUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.type !== "application/pdf") {
+            alert("Only PDF files are allowed.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            await axios.post(
+                `${API_BASE}/users/upload/${encodeURIComponent(userId)}`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            const resp = await axios.get(
+                `${API_BASE}/users/documents/${encodeURIComponent(userId)}`,
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+
+            setDocuments(resp.data.documents);
+        } catch (err) {
+            console.error("File upload failed:", err);
+            alert("Upload failed");
+        }
+    };
+
+    const confirmDelete = async () => {
+        try {
+            await axios.delete(
+                `${API_BASE}/users/documents/${encodeURIComponent(userId)}/${encodeURIComponent(deleteTarget)}`,
+                { headers: { "Content-Type": "application/json" } }
+            );
+
+            const resp = await axios.get(
+                `${API_BASE}/users/documents/${encodeURIComponent(userId)}`,
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+
+            setDocuments(resp.data.documents);
+
+            if (selectedId === deleteTarget) {
+                setSelectedId(null);
+                setPdfUrl(null);
+            }
+
+        } catch (err) {
+            console.error("Failed to delete:", err);
+            alert("Failed to delete document.");
+        }
+
+        setShowDeleteModal(false);
+        setDeleteTarget(null);
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setDeleteTarget(null);
+    };
+
+
     return (
         <div className="write-editor-container">
             <aside className="writing-list">
@@ -53,6 +156,11 @@ const Write = () => {
                     <div className="writing-list-actions">
                         <button
                             className="icon-btn"
+                            onClick={() => {
+                                setSelectedId(null);
+                                setPdfUrl(null);
+                                setViewMode("editor");
+                            }}
                             onMouseEnter={() => setShowNewTooltip(true)}
                             onMouseLeave={() => setShowNewTooltip(false)}
                             aria-label="Create"
@@ -66,6 +174,7 @@ const Write = () => {
                         </button>
                         <button
                             className="icon-btn"
+                            onClick={() => fileInputRef.current.click()}
                             onMouseEnter={() => setShowUploadTooltip(true)}
                             onMouseLeave={() => setShowUploadTooltip(false)}
                             aria-label="Upload"
@@ -77,24 +186,56 @@ const Write = () => {
                                 <span className="icon-tooltip">Upload</span>
                             )}
                         </button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            accept="application/pdf"
+                            style={{ display: "none" }}
+                            onChange={handleUpload}
+                        />
                     </div>
                 </div>
-                {writings.map((w) => (
+                {documents.map((doc) => (
                     <div
-                        key={w.id}
-                        className={`writing-list-item${selectedId === w.id ? " selected" : ""}`}
-                        onClick={() => setSelectedId(w.id)}
+                        key={doc.doc_id}
+                        className={`writing-list-item${selectedId === doc.doc_id ? " selected" : ""}`}
+                        onClick={() => setSelectedId(doc.doc_id)}
+                        style={{ position: "relative" }}
                     >
-                        <span className="writing-title">{w.title}</span>
-                        <span className="writing-date">{w.lastEdited}</span>
+                        <span className="writing-title">{doc.file_name}</span>
+
+                        <div className="writing-meta">
+                            <span className="writing-date">
+                                {new Date(doc.created_at).toLocaleDateString()}
+                            </span>
+
+                            <button
+                                className="delete-doc-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteTarget(doc.doc_id);
+                                    setShowDeleteModal(true);
+                                }}                            >
+                                ✕
+                            </button>
+                        </div>
                     </div>
                 ))}
             </aside>
 
             <main className="writing-editor">
-                <div className="editor-placeholder">
+                {viewMode === "editor" ? (
                     <RichTextEditor />
-                </div>
+                ) : (
+                    pdfUrl ? (
+                        <iframe
+                            src={pdfUrl}
+                            style={{ width: "100%", height: "100%", border: "none" }}
+                        />
+                    ) : (
+                        <div className="editor-placeholder">Loading document...</div>
+                    )
+                )}
             </main>
 
             <aside className="writing-advice">
@@ -126,6 +267,23 @@ const Write = () => {
                     ))}
                 </div>
             </aside>
+            {showDeleteModal && (
+                <div className="delete-modal-overlay">
+                    <div className="delete-modal">
+                        <h3>Delete Document?</h3>
+                        <p>This action cannot be undone.</p>
+
+                        <div className="modal-actions">
+                            <button className="modal-btn cancel" onClick={cancelDelete}>
+                                Cancel
+                            </button>
+                            <button className="modal-btn confirm" onClick={confirmDelete}>
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

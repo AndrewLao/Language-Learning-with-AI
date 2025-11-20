@@ -24,9 +24,8 @@ const defaultPrefs = [
 
 const Profile = () => {
     const [profile, setProfile] = useState({
-        picture: "https://ui-avatars.com/api/?name=User&background=213547&color=fff",
-        name: "John Doe",
-        email: "example@email.com",
+        name: ".....",
+        email: ".....",
     });
 
     const [editing, setEditing] = useState(null);
@@ -36,6 +35,8 @@ const Profile = () => {
     const [selectedPrefs, setSelectedPrefs] = useState([]);
     const [prefDraft, setPrefDraft] = useState([]);
     const [editingPrefs, setEditingPrefs] = useState(false);
+    const [streak, setStreak] = useState(0);
+
 
     // Load Settings Data
     useEffect(() => {
@@ -46,10 +47,11 @@ const Profile = () => {
                     { headers: { 'Content-Type': 'application/json' } }
                 );
                 setProfile({
-                    picture: "https://ui-avatars.com/api/?name=User&background=213547&color=fff",
                     name: resp.data.username,
                     email: resp.data.email
                 });
+
+                setStreak(resp.data.score_streak);
 
                 if (resp.data.preferences) {
                     setSelectedPrefs(resp.data.preferences);
@@ -75,15 +77,22 @@ const Profile = () => {
         if (editing === "name") payload.username = form.name;
 
         try {
-            const resp = await axios.patch(
+            await axios.patch(
                 `${API_BASE}/users/profiles/${encodeURIComponent(userId)}`,
                 payload,
                 { headers: { 'Content-Type': 'application/json' } }
             );
 
-            setProfile(resp.data);
+            const refreshed = await axios.get(
+                `${API_BASE}/users/profiles/${encodeURIComponent(userId)}`,
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+
+            setProfile({
+                name: refreshed.data.username,
+                email: refreshed.data.email
+            });
             setEditing(null);
-            window.location.reload();
         } catch (err) {
             console.error("Profile update failed:", err);
             alert("Failed to update profile");
@@ -192,6 +201,10 @@ const Profile = () => {
                         </>
                     )}
                 </div> */}
+                <h2>Daily Streak</h2>
+                <div className="setting-row">
+                    <span style={{fontSize: '2em'}}>{streak} 🔥</span>
+                </div>
             </div>
 
             <div className="preferences-card">

@@ -1,4 +1,5 @@
 // src/Login.jsx
+import axios from 'axios';
 import React, { useState } from 'react';
 import { CognitoUser, AuthenticationDetails } from 'amazon-cognito-identity-js';
 import { useNavigate } from 'react-router-dom';
@@ -31,7 +32,7 @@ const Login = () => {
 
         // Cognito Login logic
         user.authenticateUser(authenticationDetails, {
-            onSuccess: (result) => {
+            onSuccess: async (result) => {
                 console.log('Authentication successful!', result);
                 const idToken = result.getIdToken().getJwtToken();
                 const accessToken = result.getAccessToken().getJwtToken();
@@ -39,12 +40,22 @@ const Login = () => {
 
                 const idTokenPayload = result.getIdToken().decodePayload();
                 localStorage.setItem("cognitoSub", idTokenPayload.sub);
-                
+
+                const resp = await axios.get(
+                    `${import.meta.env.VITE_API_URL}/users/profiles/${encodeURIComponent(idTokenPayload.sub)}`,
+                    { headers: { "Content-Type": "application/json" } }
+                );
+
+                console.log("User profile after login:", resp.data);
+
                 // Saving tokens in localstorage and in a useState for prop passing
                 setTokens({ idToken, accessToken, refreshToken });
                 localStorage.setItem('idToken', idToken);
                 localStorage.setItem('accessToken', accessToken);
                 localStorage.setItem('refreshToken', refreshToken);
+
+                await Promise.resolve();
+
                 // Redirect to dashboard
                 navigate('/learn');
             },

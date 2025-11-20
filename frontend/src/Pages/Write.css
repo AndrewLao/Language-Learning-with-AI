@@ -207,6 +207,85 @@
     pointer-events: none;
 }
 
+.writing-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.delete-doc-btn {
+    background: none;
+    border: none;
+    color: #ff6b6b;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.2em 0.4em;
+    border-radius: 0.3em;
+    opacity: 0.8;
+}
+
+.delete-doc-btn:hover {
+    background: #ac2b2b;
+    color: #ff9f9f;
+    opacity: 1;
+}
+
+.delete-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.delete-modal {
+    background: #1e293b;
+    padding: 2em;
+    border-radius: 0.75em;
+    width: 22em;
+    text-align: center;
+    color: white;
+    border: 2px solid #334155;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5em;
+}
+
+.modal-btn {
+    padding: 0.6em 1.2em;
+    border-radius: 0.5em;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    font-size: 1em;
+}
+
+.modal-btn.cancel {
+    background: #334155;
+    color: #fff;
+}
+
+.modal-btn.cancel:hover {
+    background: #475569;
+}
+
+.modal-btn.confirm {
+    background: #dc2626;
+    color: white;
+}
+
+.modal-btn.confirm:hover {
+    background: #ef4444;
+}
+
 @media (max-width: 75em) {
 
     .writing-advice {
