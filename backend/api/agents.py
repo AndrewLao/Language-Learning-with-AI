@@ -249,6 +249,10 @@ class ManagerAgent:
         summary_text = parsed["summary"]
         vector = list(self.embeddings.embed_query(summary_text))
 
+        # Save Short Term Memory/Chat History
+        save_chat_turn_sync(state["chat_id"], state.get("user_input", ""), role="user")
+        save_chat_turn_sync(state["chat_id"], response_text, role="system")
+
         # Discard "misc" memories
         if category.lower() == "misc":
             print(
@@ -272,10 +276,6 @@ class ManagerAgent:
         print(
             f"[MEMORY] Stored memory for user {state['user_id']} as {category}: {summary_text}"
         )
-
-        # Short Term Memory Storage
-        save_chat_turn_sync(state["chat_id"], state.get("user_input", ""), role="user")
-        save_chat_turn_sync(state["chat_id"], response_text, role="system")
 
         return {}
 
