@@ -1,9 +1,14 @@
 from dotenv import load_dotenv
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+from openai import embeddings
+from panel import state
+from api.users import get_db_fs
 import json
+from datetime import datetime
 from langgraph.graph import StateGraph, END, START
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
+from pymongo import ReturnDocument
 from models.userschema import SimpleMessageGet, SimpleMessageResponse
 import os
 from pymongo import MongoClient
@@ -36,10 +41,7 @@ class ManagerAgent:
         self.agents = {"general_agent": self.general_agent}
         self.router = self.default_router
         self.llm = ChatOpenAI(model=llm_model)
-        self.db_client = QdrantClient(
-            url=os.environ.get("QDRANT_URL"),
-            api_key=os.environ.get("QDRANT_API_KEY"),
-        )
+        self.db_client = get_qdrant_client()
         
         self.mongo_client = MongoClient(os.environ.get("ATLAS_URI"))
         
@@ -108,51 +110,81 @@ class ManagerAgent:
     # Incomplete state for now until user memories updates are done
     # TODO Complete Function and Finish Short Term memory retrieval
     # TODO Make prompt to get memory if necessary to not use user input
-    def retrieve_memories(self, state: AgentState):
+    
+    def retrieve_memories(self, state: AgentState,db_fs=Depends(get_db_fs)):
+        user_id = state["user_id"]
+        chat_id = state["chat_id"]
+        qdrant = self.db_client
+        embeddings = self.embeddings
         query_text = state.get("user_input", "")
 
-        query_vector = list(self.embeddings.embed_query(query_text))
+        # Short-term memory from MongoDB
+        db, _ = db_fs
 
-        if not self.db_client.collection_exists("user_memories"):
-            return {"context": []}
+        # Only return metadata fields
+        slice_query = {
+            "_id": 0,
+            "messages": {"$slice": [-25, 25]},  # fetch last 25 messages only
+        }
 
-        search_result = self.db_client.search(
+        chat = db.chat_sessions.find_one_and_update(
+            {"chat_id": chat_id, "user_id": user_id},
+            {"$set": {"last_seen_at": datetime.utcnow()}},
+            projection=slice_query,
+            return_document=ReturnDocument.AFTER
+        )
+
+        if not chat:
+            raise HTTPException(status_code=404, detail="No chat sessions found for this user")
+        
+        short_term = chat.get("messages", [])
+        short_texts = [msg["text"] for msg in short_term if "text" in msg]
+
+        # Long-term memory from Qdrant
+        query_vector = list(embeddings.embed_query(query_text))
+        long_term = qdrant.search(
             collection_name="user_memories",
             query_vector=query_vector,
-            query_filter={
-                "must": [{"key": "user_id", "match": {"value": state["user_id"]}}]
-            },
-            limit=5,
+            limit=10,
+            with_payload=True,
+            query_filter={"must": [{"key": "user_id", "match": {"value": user_id}}]}
         )
+        
+        long_texts = []
+        for hit in long_term:
+            payload = hit.payload or {}
+            category = str(payload.get("category", "misc")).strip()
+            summary = (payload.get("summary") or payload.get("text") or "").strip()
+            # Build the exact format you asked for:
+            formatted = f"{{{category}}} concept: {summary}"
+            if formatted:  # ignore empty rows
+                long_texts.append(formatted)
 
-        # Categorize memories
-        memories = [
-            {
-                "text": hit.payload.get("text", ""),
-                "category": hit.payload.get("category", "unknown"),
-            }
-            for hit in search_result
-        ]
+        # Merge both
+        state["memories"] = short_texts + long_texts
+        return state
 
-        short_term = state.get("short_term_memories", [])
-        combined_context = short_term + memories
-
-        return {"context": combined_context}
-
+    # Rag document search fro lesson plans and references
+    #     # TODO Integrate metadata from documents to do lesson order
+    #     # TODO Integrate mongo for lessons completed
+    #     # TODO Make prompt here for RAG retrieval not based on user input
+    
+    
     def search_rag_documents(self, state: AgentState):
-        query_text = state.get("rag_query", state.get("user_input", ""))
-        # TODO Integrate metadata from documents to do lesson order
-        # TODO Integrate mongo for lessons completed
-        # TODO Make prompt here for RAG retrieval not based on user input
-        # TODO After the lessons are finished work on getting user documents loaded
-        query_vector = list(self.embeddings.embed_query(query_text))
+        query_text = state.get("user_input", "")
+        embeddings = self.embeddings
+        qdrant = self.db_client
 
-        search_result = self.db_client.search(
-            collection_name="vietnamese_store", query_vector=query_vector, limit=5
+        query_vector = list(embeddings.embed_query(query_text))
+        results = qdrant.search(
+            collection_name="vietnamese_store_with_metadata_indexed",
+            query_vector=query_vector,
+            limit=5,
+            with_payload=True
         )
-
-        docs = [hit.payload.get("text", "") for hit in search_result]
-        return {"docs": docs}
+        docs = [r.payload.get("text", "") for r in results]
+        state["docs"] = docs
+        return state
 
 
     # Decides what the agent will do with the message
@@ -170,12 +202,21 @@ class ManagerAgent:
     # Incomplete State 
     # TODO Finish short term memory and add mongo
     # TODO Test memory functions
-    def update_memory(self, state: AgentState):
+    def update_memory(self, state: AgentState,Db_fs=Depends(get_db_fs)):
         if not self.db_client.collection_exists("user_memories"):
             raise RuntimeError(
                 "user_memories collection does not exist; create it before updating memories."
             )
-            
+
+        user_id = state["user_id"]
+        response_text = state.get("response", "").strip()
+        embeddings = self.embeddings
+        qdrant = self.db_client
+        mongo = self.mongo_client
+
+        if not response_text:
+            return state    
+        
         response_text = state.get("response", "")
 
         if not response_text.strip():
@@ -205,44 +246,51 @@ class ManagerAgent:
 
         try:
             llm_resp = self.llm.invoke(classification_prompt)
-            parsed_resp = llm_resp.content.strip()
-            parsed = json.loads(parsed_resp)
-            
-            if "category" not in parsed or "summary" not in parsed:
-                raise ValueError("Invalid LLM JSON structure.")
-        except Exception as e:
-            print(f"[WARN] Memory classification failed: {e}")
+            parsed = json.loads(llm_resp.content.strip())
+        except Exception:
+            parsed = {"category": "misc", "summary": response_text[:100]}
+            category = parsed.get("category", "misc")
+            summary = parsed.get("summary", response_text[:100])
+
+        # --- store to user_memories ---
+        if category != "misc":
+            point = PointStruct(
+                id=str(uuid.uuid4()),
+                vector=list(embeddings.embed_query(summary)),
+                payload={"user_id": user_id, "category": category, "summary": summary}
+            )
+            qdrant.upsert(collection_name="user_memories", points=[point])
+
+        # --- if known, update progress in MongoDB ---
+        if category == "known":
+            query_vector = list(embeddings.embed_query(summary))
+            results = qdrant.search(
+                collection_name="vietnamese_store_with_metadata_indexed",
+                query_vector=query_vector,
+                limit=1,
+                with_payload=True
+            )
+            if results:
+            # collect all lesson_index values from results (ignore None)
+                lesson_indexes = [
+                    hit.payload.get("lesson_index")
+                    for hit in results
+                    if hit.payload.get("lesson_index") is not None
+                ]
+
+                if lesson_indexes:
+                    user_profiles = mongo.get_database().get_collection("user_profiles")
+                    # use $addToSet + $each to append unique values to an array
+                    user_profiles.update_one(
+                        {"user_id": user_id},
+                        {"$addToSet": {"lesson_learnt": {"$each": lesson_indexes}}},
+                        upsert=True
+                    )
+
         
-        category = parsed["category"]
-        
-        summary_text = parsed["summary"]
-        vector = list(self.embeddings.embed_query(summary_text))
-
-        # Discard "misc" memories
-        if category.lower() == "misc":
-            print(f"[MEMORY] Discarding misc memory for user {state['user_id']}: {summary_text}")
-            return state
-
-        # TODO Might also need to store date of memory to get most recent memories later
-        point = PointStruct(
-            id=str(uuid.uuid4()),
-            vector=vector,
-            payload={
-            "user_id": state["user_id"],
-            "text": response_text,
-            "summary": summary_text,
-            "category": category,
-            },
-        )
-
-        self.db_client.upsert(collection_name="user_memories", points=[point])
-        print(f"[MEMORY] Stored memory for user {state['user_id']} as {category}: {summary_text}")
-
-        # Short Term Memory Storage
-        save_chat_turn_sync(state["chat_id"], response_text, role="system")
-
         return state
-
+    
+    # Builds the agent pipeline graph
     def build_graph(self):
         graph = StateGraph(AgentState)
 
@@ -255,17 +303,24 @@ class ManagerAgent:
         graph.add_node("memory_updater", self.update_memory)
         graph.add_node("merge_docs", self.merge_docs)
 
-        graph.add_edge(START, "input")
-        graph.add_edge("input", "memories")
-        graph.add_edge("memories", "rag_docs")
-        graph.add_edge("rag_docs", "merge_docs")
-        graph.add_edge("merge_docs", "planner")
-        graph.add_edge("planner", "router")
-        # Route to agent (currently only general_agent)
-        graph.add_edge("router", "general_agent")
-        graph.add_edge("general_agent", "memory_updater")
-        graph.add_edge("memory_updater", END)
+        # graph.add_edge(START, "input")
+        # graph.add_edge("input", "memories")
+        # graph.add_edge("memories", "rag_docs")
+        # graph.add_edge("rag_docs", "merge_docs")
+        # graph.add_edge("merge_docs", "planner")
+        # graph.add_edge("planner", "router")
+        # # Route to agent (currently only general_agent)
+        # graph.add_edge("router", "general_agent")
+        # graph.add_edge("general_agent", "memory_updater")
+        # graph.add_edge("memory_updater", END)
 
+        # Simplified edges for single agent
+        graph.add_edge(START, "input")
+        graph.add_edge("input", "rag_docs")
+        graph.add_edge("rag_docs", "memories")
+        graph.add_edge("memories", "general_agent")
+        graph.add_edge("general_agent", "update_memory")
+        graph.add_edge("update_memory", END)
         return graph
 
     # Executes the agent pipeline

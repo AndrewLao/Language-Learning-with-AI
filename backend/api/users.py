@@ -43,6 +43,7 @@ def create_user_profile(payload: UserProfileCreate, db_fs=Depends(get_db_fs)):
         email=payload.email,
         last_seen=now,
         score_streak=1,
+        lessons_completed=[],
     )
     db.user_profiles.insert_one(profile.model_dump())
     return profile
