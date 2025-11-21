@@ -350,8 +350,8 @@ class ManagerAgent:
         graph.add_edge("input", "rag_docs")
         graph.add_edge("rag_docs", "memories")
         graph.add_edge("memories", "general_agent")
-        graph.add_edge("general_agent", "update_memory")
-        graph.add_edge("update_memory", END)
+        graph.add_edge("general_agent", "memory_updater")
+        graph.add_edge("memory_updater", END)
         return graph
 
     # Executes the agent pipeline
