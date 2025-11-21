@@ -26,6 +26,7 @@ class UserProfile(BaseModel):
     last_seen: Optional[datetime] = None
     score_streak: int = 0
     lessons_completed: List[int] = Field(default_factory=list)
+    preferences: "UserPreferences" = Field(default_factory=lambda: UserPreferences())
     documents: List[UserDocument] = Field(default_factory=list)    
 
 #Schema for Creating User Profile
@@ -36,11 +37,15 @@ class UserProfileCreate(BaseModel):
     last_seen: Optional[datetime] = None
     score_streak: int = 0
     lessons_completed: List[int] = Field(default_factory=list)
+    preferences: "UserPreferences" = Field(default_factory=lambda: UserPreferences())
+    lessons_completed: List[int] = Field(default_factory=list)
 
 #Schema for Edit Profile
 class EditProfile(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
+    lessons_completed: Optional[List[int]] = None
+    preferences: Optional["UserPreferences"] = None
     lessons_completed: Optional[List[int]] = None
 
 #Schema for Messages
@@ -70,3 +75,20 @@ class ChatSession(BaseModel):
     status: Literal["active", "archived", "deleted"] = "active"
     pinned: bool = False
     agent_context: Optional[AgentContext] = None
+
+# Separate model for user preference categories
+class UserPreferences(BaseModel):
+    movies: bool = False
+    games: bool = False
+    anime: bool = False
+    travel: bool = False
+    technology: bool = False
+    outdoors: bool = False
+    podcasts: bool = False
+    books: bool = False
+    music: bool = False
+    fitness: bool = False
+    cooking: bool = False
+    art: bool = False
+    pets: bool = False
+    photography: bool = False
