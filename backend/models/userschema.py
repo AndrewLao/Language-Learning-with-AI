@@ -92,3 +92,17 @@ class UserPreferences(BaseModel):
     art: bool = False
     pets: bool = False
     photography: bool = False
+
+# Schema for User WriteUps
+class WriteUp(BaseModel):
+    writeup_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    title: str
+    content: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class WriteUpCreate(BaseModel):
+    user_id: str
+    title: str
+    content: str

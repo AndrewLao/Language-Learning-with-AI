@@ -2,16 +2,73 @@ from fastapi import APIRouter, UploadFile, HTTPException, Depends, Request , Que
 from fastapi.responses import FileResponse
 from datetime import datetime , timedelta
 from pymongo import ReturnDocument
-from models.userschema import UserProfile, UserProfileCreate , EditProfile, ChatSession, Message
+from models.userschema import UserProfile, UserProfileCreate , EditProfile, ChatSession, Message, WriteUp, WriteUpCreate
 from typing import List, Optional
 from pathlib import Path
 import tempfile
-import uuid
+import os, uuid
+from dotenv import load_dotenv
+from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams
+from qdrant_client.http.models import PointStruct
 
 router = APIRouter()
 
 def get_db_fs(request: Request):
     return request.app.state.db, request.app.state.fs
+
+load_dotenv()
+QDRANT_URL_KEY = os.environ.get("QDRANT_URL_KEY")
+QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+qdrant = QdrantClient(url=QDRANT_URL_KEY, api_key=QDRANT_API_KEY)
+embeddings = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=OPENAI_API_KEY)
+
+def pdf_bytes_to_points(pdf_bytes: bytes, user_id: str, doc_id: str) -> List[PointStruct]:
+    """Extract text from PDF bytes, chunk, embed, and build Qdrant points."""
+    # Write to a temp file so PyMuPDFLoader can read it
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(pdf_bytes)
+        tmp_path = tmp.name
+
+    try:
+        # 1) Load & split
+        docs = PyMuPDFLoader(tmp_path).load()
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        chunks = splitter.split_documents(docs)
+
+        points = []
+        for i, chunk in enumerate(chunks):
+            text = (chunk.page_content or "").strip()
+            if not text:
+                continue
+            vector = list(embeddings.embed_query(text))
+            page = (chunk.metadata or {}).get("page", None)
+
+            points.append(PointStruct(
+                id=str(uuid.uuid4()),
+                vector=vector,
+                payload={
+                    "user_id": user_id,
+                    "doc_id": doc_id,
+                    "text": text,
+                    "page": page,            # optional but handy
+                    "chunk_index": i,        # optional
+                    "source": "upload_api",  # optional provenance
+                }
+            ))
+        return points
+    finally:
+        # Clean up the temp file
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
 
 """
 User Profile Management 
@@ -229,8 +286,11 @@ User Document Management
 @router.post("/upload/{user_id}")
 async def upload_document(user_id: str, file: UploadFile, db_fs=Depends(get_db_fs)):
     # Save file into GridFS
+    pdf_bytes = await file.read()
+
+    # Save PDF to GridFS
     db, fs = db_fs
-    file_id = fs.put(await file.read(), filename=file.filename)
+    file_id = fs.put(pdf_bytes, filename=file.filename)
 
     # Save metadata
     doc_id = str(uuid.uuid4())
@@ -243,7 +303,28 @@ async def upload_document(user_id: str, file: UploadFile, db_fs=Depends(get_db_f
         "created_at": datetime.utcnow(),
         "processed": False
     })
-    return {"doc_id": doc_id, "file_name": file.filename}
+
+    points = pdf_bytes_to_points(pdf_bytes, user_id=user_id, doc_id=doc_id)
+    if points:
+        qdrant.upsert(collection_name="user_documents", points=points)
+
+    # Mark processed + store counts for visibility
+    db.user_documents.update_one(
+        {"doc_id": doc_id},
+        {"$set": {
+            "processed": True,
+            "vector_points": len(points),
+            "last_processed_at": datetime.utcnow()
+        }}
+    )
+
+    return {
+        "doc_id": doc_id,
+        "file_name": file.filename,
+        "stored_in": "gridfs",
+        "vectors_upserted": len(points),
+        "message": "Document uploaded and processed successfully"
+    }
 
 # List all User Documents
 @router.get("/documents/{user_id}")
@@ -284,3 +365,51 @@ def delete_document(user_id: str, doc_id: str, db_fs=Depends(get_db_fs)):
     db.user_documents.delete_one({"doc_id": doc_id})
     
     return {"message": "Document deleted successfully", "doc_id": doc_id}
+
+"""
+User WriteUp Management
+# Endpoints: (1) create writeup (2) list all writeups for user (3) get specific writeup (4) delete writeup
+"""
+
+# (1) Create a new writeup
+@router.post("/writeups", response_model=WriteUp, status_code=201)
+def create_writeup(payload: WriteUpCreate, db_fs=Depends(get_db_fs)):
+    db, _ = db_fs
+    writeup = WriteUp(
+        user_id=payload.user_id,
+        title=payload.title,
+        content=payload.content
+    )
+    db.user_writeups.insert_one(writeup.model_dump())
+    return writeup
+
+# (2) List all writeups for a user
+@router.get("/writeups/{user_id}", response_model=List[WriteUp])
+def list_writeups(user_id: str, db_fs=Depends(get_db_fs)):
+    db, _ = db_fs
+    writeups = list(
+        db.user_writeups.find({"user_id": user_id}, {"_id": 0})
+                        .sort("created_at", -1)  # newest first
+    )
+    if not writeups:
+        return []  # Return empty list instead of 404
+    return [WriteUp(**w) for w in writeups]
+
+# (3) Get a specific writeup
+@router.get("/writeups/{user_id}/{writeup_id}", response_model=WriteUp)
+def get_writeup(user_id: str, writeup_id: str, db_fs=Depends(get_db_fs)):
+    db, _ = db_fs
+    writeup = db.user_writeups.find_one({"user_id": user_id, "writeup_id": writeup_id}, {"_id": 0})
+    if not writeup:
+        raise HTTPException(status_code=404, detail="WriteUp not found")
+    return WriteUp(**writeup)
+
+# (4) Delete a specific writeup
+@router.delete("/writeups/{user_id}/{writeup_id}")
+def delete_writeup(user_id: str, writeup_id: str, db_fs=Depends(get_db_fs)):
+    db, _ = db_fs
+    result = db.user_writeups.delete_one({"user_id": user_id, "writeup_id": writeup_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="WriteUp not found")
+    return {"message": "WriteUp deleted successfully", "writeup_id": writeup_id}
+
