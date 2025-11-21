@@ -1,13 +1,14 @@
 .write-editor-container {
     display: flex;
+    position: relative;
+    top: 4em;
+    left: 14.5em;
     height: calc(100vh - 4em);
     width: calc(100vw - 200px);
     background-color: #667A8A;
     color: white;
     box-sizing: border-box;
     padding-top: 0;
-    margin-left: 225px;
-    margin-top: 4em;
     overflow: hidden;
 }
 
@@ -17,7 +18,7 @@
     max-width: 20em;
     background: #031D31;
     border-right: 0.125em solid #213547;
-    padding: 2em 1em 1em 2em;
+    padding: 1.5em 1em 1em 2em;
     display: flex;
     flex-direction: column;
     gap: 1em;
@@ -38,7 +39,6 @@
 .writing-list-header h2 {
     margin: 0;
     color: #fff;
-    font-size: 1.2em;
 }
 
 .writing-list-actions {
@@ -93,13 +93,16 @@
 .editor-placeholder {
     width: 100%;
     min-height: 60vh;
-    background: #213547;
-    color: #213547;
-    border-radius: 0.5em;
+    background: transparent;
+    /* let RichTextEditor provide the dark background */
+    color: #e6eef8;
+    border-radius: 8px;
+    box-shadow: none;
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
     font-size: 1.2em;
+    padding: 0;
 }
 
 .writing-advice {
@@ -108,7 +111,7 @@
     max-width: 25em;
     background: #031D31;
     border-left: 0.125em solid #213547;
-    padding: 2em 1em 1em 1em;
+    padding: 0.5em 1em 1em 1em;
     margin-right: 1.5em;
     display: flex;
     flex-direction: column;
@@ -120,7 +123,7 @@
     scrollbar-color: #213547 #213547;
 }
 
-.writing-advice h3 {
+.writing-advice h2 {
     margin-bottom: 1em;
     color: #a5b4fc;
 }
@@ -226,3 +229,4 @@
         padding: 1em;
     }
 }
+
