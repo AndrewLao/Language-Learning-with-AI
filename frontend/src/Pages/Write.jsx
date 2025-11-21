@@ -1,6 +1,6 @@
 import "./Write.css";
 import { useState } from "react";
-import RichTextEditor from "../Components/RichTextEditor";
+import RichTextEditor from "../Components/RichTextEditor"
 
 // Example data
 const writings = [
@@ -9,31 +9,6 @@ const writings = [
     { id: 3, title: "Language Learning Goals", lastEdited: "2024-06-15" },
     { id: 4, title: "A Day at the Beach", lastEdited: "2024-06-16" },
     { id: 5, title: "Favorite Books", lastEdited: "2024-06-17" },
-    { id: 6, title: "Learning Spanish", lastEdited: "2024-06-18" },
-    { id: 7, title: "My Hometown", lastEdited: "2024-06-19" },
-    { id: 8, title: "Dream Vacation", lastEdited: "2024-06-20" },
-    { id: 9, title: "Childhood Memories", lastEdited: "2024-06-21" },
-    { id: 10, title: "A Memorable Meal", lastEdited: "2024-06-22" },
-    { id: 11, title: "Daily Routine", lastEdited: "2024-06-23" },
-    { id: 12, title: "Learning from Mistakes", lastEdited: "2024-06-24" },
-    { id: 13, title: "Favorite Movie", lastEdited: "2024-06-25" },
-    { id: 14, title: "Weekend Activities", lastEdited: "2024-06-26" },
-    { id: 15, title: "My Pet", lastEdited: "2024-06-27" },
-    { id: 16, title: "A Difficult Decision", lastEdited: "2024-06-28" },
-    { id: 17, title: "Best Friend", lastEdited: "2024-06-29" },
-    { id: 18, title: "Learning English", lastEdited: "2024-06-30" },
-    { id: 19, title: "Favorite Sport", lastEdited: "2024-07-01" },
-    { id: 20, title: "A Funny Story", lastEdited: "2024-07-02" },
-    { id: 21, title: "My Family", lastEdited: "2024-07-03" },
-    { id: 22, title: "A New Hobby", lastEdited: "2024-07-04" },
-    { id: 23, title: "Overcoming Fear", lastEdited: "2024-07-05" },
-    { id: 24, title: "Favorite Food", lastEdited: "2024-07-06" },
-    { id: 25, title: "A Special Gift", lastEdited: "2024-07-07" },
-    { id: 26, title: "Learning to Cook", lastEdited: "2024-07-08" },
-    { id: 27, title: "A Rainy Day", lastEdited: "2024-07-09" },
-    { id: 28, title: "My Favorite Place", lastEdited: "2024-07-10" },
-    { id: 29, title: "A Lesson Learned", lastEdited: "2024-07-11" },
-    { id: 30, title: "Future Plans", lastEdited: "2024-07-12" },
 ];
 
 const sampleFeedback = [
@@ -52,30 +27,6 @@ const sampleFeedback = [
     {
         title: "Spelling Correction",
         details: "Check the spelling of 'definately' in the last section. It should be 'definitely'."
-    },
-    {
-        title: "Punctuation Advice",
-        details: "Add a comma after introductory phrases, such as in 'After dinner we went for a walk.' → 'After dinner, we went for a walk.'"
-    },
-    {
-        title: "Word Choice",
-        details: "Consider replacing 'nice' with a more descriptive adjective like 'pleasant' or 'enjoyable' in your conclusion."
-    },
-    {
-        title: "Tense Consistency",
-        details: "Maintain the same tense throughout your story. You switched from past to present tense in the second paragraph."
-    },
-    {
-        title: "Clarity Improvement",
-        details: "The phrase 'it was big' is vague. Specify what 'it' refers to for better clarity."
-    },
-    {
-        title: "Paragraph Structure",
-        details: "Start a new paragraph when you introduce a new idea or topic to improve readability."
-    },
-    {
-        title: "Pronoun Reference",
-        details: "Make sure pronouns clearly refer to the correct noun. In 'When Anna met Maria, she was happy,' clarify who 'she' refers to."
     }
 ];
 
@@ -147,7 +98,7 @@ const Write = () => {
             </main>
 
             <aside className="writing-advice">
-                <h3 style={{ color: "#fff" }}>Feedback</h3>
+                <h2 style={{ color: "#fff" }}>Feedback</h2>
                 <div className="advice-placeholder">
                     {sampleFeedback.map((fb, idx) => (
                         <div

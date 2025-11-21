@@ -9,9 +9,8 @@ import Banner from './Components/Banner.jsx';
 import Dashboard from './Pages/Dashboard.jsx';
 import Learn from './Pages/Learn.jsx';
 import Profile from './Pages/Profile.jsx';
-
-// Document Editor
-import Write from './DocumentEditor/Write.jsx';
+import Quiz from './Pages/Quiz.jsx';
+import Write from './Pages/Write.jsx';
 
 // Authentication pages and logic
 import Login from './Auth/Login.jsx';
@@ -22,22 +21,21 @@ function AppWrapper() {
   const { pathname } = useLocation();
 
   const showNavbar = !['', '/login', '/register'].includes(pathname);
-  const showBanner = !['','/dashboard'].includes(pathname);
+  const showBanner = ![''].includes(pathname);
 
   return (
     <>
       <>
         {showNavbar && <Navbar />}
         {showBanner && <Banner />}
-        {/* Auth logic currently ignored since cognito is turned off right now. Add after app finished.*/}
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/learn" element={<Learn />} />
-          <Route path="/write" element={<Write />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/" element={<Login />} />
+          <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
+          <Route path="/write" element={<ProtectedRoute><Write /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/quizzes" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          {/* <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /> */}
         </Routes>
       </>
     </>

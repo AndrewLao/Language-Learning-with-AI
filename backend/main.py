@@ -6,7 +6,8 @@ from pymongo import MongoClient
 from gridfs import GridFS
 from contextlib import asynccontextmanager
 # from api import agents, rag, users
-from api import users, agents
+from api import users, agents, testingAgent
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,12 +28,18 @@ async def lifespan(app: FastAPI):
         client.close()
 
 app = FastAPI(title="LangTutor API" , lifespan=lifespan)
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Register routers
 # app.include_router(agents.router, prefix="/agents", tags=["Agents"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(agents.router, prefix="/agent", tags=["Agent"])
-
+app.include_router(testingAgent.router, prefix="/test", tags=["Testing"])
 
 @app.get("/")
 def health_check():

@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import userPool from './CognitoConfigs';
 import './Register.css';
+import axios from "axios";
+
+const API_BASE = import.meta.env.VITE_API_URL;
 
 const checkPassword = (password) => {
     const missingCriteria = [];
@@ -34,14 +37,11 @@ const Register = () => {
 
         const missing = checkPassword(password);
         if (missing.length > 0) {
-            setError(
-                `Password must contain: ${missing.join(', ')}.`
-            );
+            setError(`Password must contain: ${missing.join(', ')}.`);
             return;
         }
 
-        // Cognito registration 
-        userPool.signUp(email, password, [{ Name: 'email', Value: email }], null, (err, result) => {
+        userPool.signUp(email, password, [{ Name: 'email', Value: email }], null, async (err, result) => {
             if (err) {
                 console.error('Registration error:', err);
                 if (err.code === 'UsernameExistsException') {
@@ -49,15 +49,32 @@ const Register = () => {
                 } else {
                     setError(err.message || JSON.stringify(err));
                 }
-            } else {
-                console.log('Registration successful!', result);
-                setSuccess('Registration successful! You will be redirected to login.');
-                setTimeout(() => {
-                    navigate('/login');
-                }, 2000);
+                return;
+            }
+
+            console.log("Cognito signup success:", result);
+
+            const userId = result.userSub; 
+            const emailAddr = result.user.getUsername();
+            const username = emailAddr.split("@")[0];
+
+            try {
+                await axios.post(`${API_BASE}/users/profiles`, {
+                    user_id: userId,
+                    username: username,
+                    email: emailAddr
+                });
+
+                setSuccess("Registration successful! Redirecting to login...");
+                setTimeout(() => navigate("/login"), 2000);
+
+            } catch (dbErr) {
+                console.error("Backend profile creation failed:", dbErr);
+                setError("Account created, but failed to create your user profile.");
             }
         });
     };
+
 
     const handleGoToRegister = () => {
         navigate('/login');

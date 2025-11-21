@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { CognitoUser, AuthenticationDetails } from 'amazon-cognito-identity-js';
 import { useNavigate } from 'react-router-dom';
-import userPool from './CognitoConfigs'; // Import your configured user pool
+import userPool from './CognitoConfigs';
 import "./Login.css";
 
 const Login = () => {
@@ -15,17 +15,17 @@ const Login = () => {
         setError('');
 
         const formData = new FormData(e.target);
-        const { username, password } = Object.fromEntries(formData.entries());
+        const { email, password } = Object.fromEntries(formData.entries());
 
         // Create an AuthenticationDetails object with the entered credentials
         const authenticationDetails = new AuthenticationDetails({
-            Username: username,
-            Password: password,
+            Username: email.trim(),
+            Password: password.trim(),
         });
 
         // Create a CognitoUser using the configured user pool
         const user = new CognitoUser({
-            Username: username,
+            Username: email,
             Pool: userPool,
         });
 
@@ -36,19 +36,23 @@ const Login = () => {
                 const idToken = result.getIdToken().getJwtToken();
                 const accessToken = result.getAccessToken().getJwtToken();
                 const refreshToken = result.getRefreshToken().getToken();
+
+                const idTokenPayload = result.getIdToken().decodePayload();
+                localStorage.setItem("cognitoSub", idTokenPayload.sub);
+                
                 // Saving tokens in localstorage and in a useState for prop passing
                 setTokens({ idToken, accessToken, refreshToken });
                 localStorage.setItem('idToken', idToken);
                 localStorage.setItem('accessToken', accessToken);
                 localStorage.setItem('refreshToken', refreshToken);
                 // Redirect to dashboard
-                navigate('/dashboard');
+                navigate('/learn');
             },
             onFailure: (err) => {
                 console.error('Authentication failed:', err);
                 setError(err.message || JSON.stringify(err));
             },
-            // Required portion for cognito api but effectively dead code since it's unused
+            // Required portion for cognito api to work but effectively dead code since it's unused
             newPasswordRequired: (userAttributes, requiredAttributes) => {
                 console.log('New password required', userAttributes, requiredAttributes);
                 setError("New password required. Please reset your password.");
@@ -66,7 +70,7 @@ const Login = () => {
                 <h1>Login</h1>
                 {error && <p className="error">{error}</p>}
                 <label>
-                    <input type="email" name="username" placeholder="Email" required />
+                    <input type='email' name="email" placeholder="Email" required />
                 </label>
                 <label>
                     <input type="password" name="password" placeholder="Password" required />
