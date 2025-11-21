@@ -15,10 +15,6 @@ from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
 from pymongo import ReturnDocument
 from models.userschema import SimpleMessageGet, SimpleMessageResponse
-
-from pymongo import MongoClient
-from qdrant_client import QdrantClient
-from models.userschema import SimpleMessageGet, SimpleMessageResponse
 from pymongo import MongoClient
 from qdrant_client.http.models import PointStruct
 from services.rag_store_qdrant import get_qdrant_client, query_qdrant
@@ -208,27 +204,12 @@ class ManagerAgent:
         state["docs"] = docs
         return state
 
-    # Decides what the agent will do with the message
-    # Probably not needed but I'll keep it here for now
-    def planner(self, state: AgentState):
-        print("Time planner:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        # Another prompt goes here if we decide that there is a specialized case
-        return {}
-
-    # Required because of graph layout
-    # Handles updating both memories and rag document outputs
-    def merge_docs(self, state: AgentState, **kwargs):
-        print("Time merge docs:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        combined = state.get("memories", []) + state.get("docs", [])
-        return {"docs": combined}
-
-    # Incomplete State
-    # TODO Finish short term memory and add mongo
-    # TODO Test memory functions
-    def update_memory(self, state: AgentState):
-        print(
-            "Time update memory:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-        )
+    # Updates long-term memory based on agent response    
+    def update_memory(self, state: AgentState,Db_fs=Depends(get_db_fs)):
+        print("Time update memory:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        user_id = state["user_id"]
+        qdrant = self.db_client
+        embeddings = self.embeddings
         if not self.db_client.collection_exists("user_memories"):
             raise RuntimeError(
                 "user_memories collection does not exist; create it before updating memories."
@@ -263,60 +244,6 @@ class ManagerAgent:
 
         try:
             llm_resp = self.llm.invoke(classification_prompt)
-            parsed = json.loads(llm_resp.content.strip())
-        except Exception:
-            parsed = {"category": "misc", "summary": response_text[:100]}
-            category = parsed.get("category", "misc")
-            summary = parsed.get("summary", response_text[:100])
-            
-        if category.lower() == "misc":
-            save_chat_turn_sync(state["chat_id"], state.get("user_input", ""), role="user")
-            save_chat_turn_sync(state["chat_id"], response_text, role="system")
-            print(
-                f"[MEMORY] Discarding misc memory for user {state['user_id']}: {summary_text}"
-            )
-            return {}
-
-        # --- store to user_memories ---
-        if category != "misc":
-            point = PointStruct(
-                id=str(uuid.uuid4()),
-                vector=list(embeddings.embed_query(summary)),
-                payload={"user_id": user_id, "category": category, "summary": summary}
-            )
-            qdrant.upsert(collection_name="user_memories", points=[point])
-
-        # --- if known, update progress in MongoDB ---
-        if category == "known":
-            query_vector = list(embeddings.embed_query(summary))
-            results = qdrant.search(
-                collection_name="vietnamese_store_with_metadata_indexed",
-                query_vector=query_vector,
-                limit=1,
-                with_payload=True
-            )
-            if results:
-            # collect all lesson_index values from results (ignore None)
-                lesson_indexes = [
-                    hit.payload.get("lesson_index")
-                    for hit in results
-                    if hit.payload.get("lesson_index") is not None
-                ]
-
-                if lesson_indexes:
-                    user_profiles = mongo.get_database().get_collection("user_profiles")
-                    # use $addToSet + $each to append unique values to an array
-                    user_profiles.update_one(
-                        {"user_id": user_id},
-                        {"$addToSet": {"lesson_learnt": {"$each": lesson_indexes}}},
-                        upsert=True
-                    )
-
-        # Short Term Memory Storage
-        save_chat_turn_sync(state["chat_id"], state.get("user_input", ""), role="user")
-        save_chat_turn_sync(state["chat_id"], response_text, role="system")
-
-        return state
             parsed_resp = llm_resp.content.strip()
             parsed = json.loads(parsed_resp)
 
@@ -361,7 +288,8 @@ class ManagerAgent:
         save_chat_turn_sync(state["chat_id"], state.get("user_input", ""), role="user")
         save_chat_turn_sync(state["chat_id"], response_text, role="system")
 
-        return {}
+        
+        return state
     
     # Builds the agent pipeline graph
     def build_graph(self):
@@ -376,16 +304,7 @@ class ManagerAgent:
         graph.add_node("memory_updater", self.update_memory)
         graph.add_node("merge_docs", self.merge_docs)
 
-        # graph.add_edge(START, "input")
-        # graph.add_edge("input", "memories")
-        # graph.add_edge("memories", "rag_docs")
-        # graph.add_edge("rag_docs", "merge_docs")
-        # graph.add_edge("merge_docs", "planner")
-        # graph.add_edge("planner", "router")
-        # # Route to agent (currently only general_agent)
-        # graph.add_edge("router", "general_agent")
-        # graph.add_edge("general_agent", "memory_updater")
-        # graph.add_edge("memory_updater", END)
+    
 
         # Simplified edges for single agent
         graph.add_edge(START, "input")
@@ -410,15 +329,9 @@ class ManagerAgent:
 
 
 @router.post("/invoke-agent", response_model=SimpleMessageResponse)
-def invoke_agent(payload: SimpleMessageGet, db_fs=Depends(get_db_fs)):
-    db, fs = db_fs
-    agent = ManagerAgent(db=db)
-    state = agent.invoke(
-        # "343", "2a8bf31a-4307-4f16-b382-7a6a6057915b"
-        payload.user_id,
-        payload.chat_id,
-        payload.input_string,
-    )
+def invoke_agent(payload: SimpleMessageGet):
+    agent = ManagerAgent()
+    state = agent.invoke("test_user_id", "test_chat_id", payload.input_string)
     response_text = (
         state.get("response")
         if isinstance(state, dict)
