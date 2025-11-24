@@ -2,28 +2,24 @@ from file_utils import write_to_file, clear_file
 from llm_chat import chat_with_llm_and_context, chat_with_llm_and_context_mistral, clear_session_history
 from test_ant import call_claude
 
-output_file = "llm_evaluation_results2.txt"
+output_file = "llm_evaluation_results3.txt"
 clear_file(output_file)
 prompt = [
-    "Choose the correct alphabet only (a, b, c or d) "\
-    "Từ hòa bình có nghĩa là gì?"\
-    "a) Chiến tranh" \
-    "b) Tình bạn" \
-    "c) Không có chiến tranh, sống yên ổn" \
-    "d) Học tập"    ,
-    "Điền từ thích hợp vào chỗ trống: Con mèo ______ trên mái nhà." \
-    "ngủ, bơi"  ,
-    "Từ nào trái nghĩa với hạnh phúc? bất hạnh, to lớn, nhanh, đẹp",
-    "Từ đồng nghĩa với to lớn? nhỏ, khổng lồ, ngắn, nhẹ",
-    "Lan đi bộ đến trường, đi bộ là loại từ nào?"
+    "Choose the correct alphabet only (a, b, c or d) and doesn't output the correct sentence" \
+    "In Vietnamese, which sentence best expresses ability? " \
+    "a. Tôi nên ngủ, b. Tôi muốn ăn, c. tôi phải đi làm, d. tôi có thể bơi " ,
+    "Which modal verb most naturally conveys obligation or necessity? " \
+    "a. nên, b. phải, c. muốn, có thể" ,
+    "Choose the best rewrite to politely suggest: You should see a doctor. " \
+    "a. Bạn nên đi khám bác sĩ. b. Bạn phải đi khám bác sĩ. " ,
+    "Which sentence uses the modal for permission correctly?" \
+    "a. Em nên mượn sách không? b. Em có thể mượn sách không? " ,
+    "Identify the most natural placement of a modal in Vietnamese word order" \
+    "a. Subject + Modal + Verb + Object, b.Subject + Verb + Modal + Object, "
 ]
 
 expected = [
-    "c",
-    "ngủ",
-    "bất hạnh",
-    "khổng lồ",
-    "động từ"
+    "d", "b", "a", "b", "a"
     ]
 
 context = "You are a Vietnamese language expert. " \

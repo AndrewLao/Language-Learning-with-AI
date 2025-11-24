@@ -11,15 +11,15 @@ api_key = os.getenv("ANTHROPIC_API_KEY")
 client = Anthropic(api_key=api_key)
 
 # Example: sending a simple message to Claude
-response = client.messages.create(
-    model="claude-sonnet-4-5",
-    max_tokens=1024,
-    messages=[
-        {"role": "user", "content": "Can you describe LLMs to me?"},
-    ],
-)
+# response = client.messages.create(
+#     model="claude-sonnet-4-5",
+#     max_tokens=1024,
+#     messages=[
+#         {"role": "user", "content": "Can you describe LLMs to me?"},
+#     ],
+# )
 
-print(response.content[0].text)
+# print(response.content[0].text)
 
 def call_claude(context, message):
     response = client.messages.create(

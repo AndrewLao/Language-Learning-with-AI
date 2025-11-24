@@ -1,0 +1,69 @@
+Testing Vietnamese Language LLM Evaluation
+
+Testing Primary LLM now...
+Input: Choose the correct alphabet only (a, b, c or d) and doesn't output the correct sentenceIn Vietnamese, which sentence best expresses ability? a. Tôi nên ngủ, b. Tôi muốn ăn, c. tôi phải đi làm, d. tôi có thể bơi 
+Output: d
+Expected: d
+ score: 1 
+Input: Which modal verb most naturally conveys obligation or necessity? a. nên, b. phải, c. muốn, có thể
+Output: b
+Expected: b
+ score: 2 
+Input: Choose the best rewrite to politely suggest: You should see a doctor. a. Bạn nên đi khám bác sĩ. b. Bạn phải đi khám bác sĩ. 
+Output: a
+Expected: a
+ score: 3 
+Input: Which sentence uses the modal for permission correctly?a. Em nên mượn sách không? b. Em có thể mượn sách không? 
+Output: b
+Expected: b
+ score: 4 
+Input: Identify the most natural placement of a modal in Vietnamese word ordera. Subject + Modal + Verb + Object, b.Subject + Verb + Modal + Object, 
+Output: a
+Expected: a
+ score: 5 
+Current Score: 5/5
+---Testing Mistral LLM now...
+Input: Choose the correct alphabet only (a, b, c or d) and doesn't output the correct sentenceIn Vietnamese, which sentence best expresses ability? a. Tôi nên ngủ, b. Tôi muốn ăn, c. tôi phải đi làm, d. tôi có thể bơi 
+Output: d
+Expected: d
+ score: 1 
+Input: Which modal verb most naturally conveys obligation or necessity? a. nên, b. phải, c. muốn, có thể
+Output: b
+Expected: b
+ score: 2 
+Input: Choose the best rewrite to politely suggest: You should see a doctor. a. Bạn nên đi khám bác sĩ. b. Bạn phải đi khám bác sĩ. 
+Output: a
+Expected: a
+ score: 3 
+Input: Which sentence uses the modal for permission correctly?a. Em nên mượn sách không? b. Em có thể mượn sách không? 
+Output: b
+Expected: b
+ score: 4 
+Input: Identify the most natural placement of a modal in Vietnamese word ordera. Subject + Modal + Verb + Object, b.Subject + Verb + Modal + Object, 
+Output: a
+Expected: a
+ score: 5 
+Current Score with Mistral LLM: 5/5
+---Testing Claude LLM now...
+Input: Choose the correct alphabet only (a, b, c or d) and doesn't output the correct sentenceIn Vietnamese, which sentence best expresses ability? a. Tôi nên ngủ, b. Tôi muốn ăn, c. tôi phải đi làm, d. tôi có thể bơi 
+Output: d
+Expected: d
+ score: 1 
+Input: Which modal verb most naturally conveys obligation or necessity? a. nên, b. phải, c. muốn, có thể
+Output: b. phải
+Expected: b
+ score: 1 
+Input: Choose the best rewrite to politely suggest: You should see a doctor. a. Bạn nên đi khám bác sĩ. b. Bạn phải đi khám bác sĩ. 
+Output: a. bạn nên đi khám bác sĩ.
+Expected: a
+ score: 1 
+Input: Which sentence uses the modal for permission correctly?a. Em nên mượn sách không? b. Em có thể mượn sách không? 
+Output: b. em có thể mượn sách không?
+Expected: b
+ score: 1 
+Input: Identify the most natural placement of a modal in Vietnamese word ordera. Subject + Modal + Verb + Object, b.Subject + Verb + Modal + Object, 
+Output: a. subject + modal + verb + object
+Expected: a
+ score: 1 
+Current Score with Claude LLM: 1/5
+---
