@@ -1,5 +1,3 @@
-
-
 from llm_chat import chat_with_llm, clear_session_history
 
 prompt = "Ask me three yes/no math questions one at a time " \
