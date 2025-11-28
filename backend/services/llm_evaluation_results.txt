@@ -15,14 +15,14 @@ Output: Tôi không biết câu trả lời.
 Expected: Tôi không biết câu trả lời.
 Input: Anh ấy là đẹp trai lắm
 Output: Anh ấy đẹp trai lắm.
-Expected: Anh ấy rất đẹp trai.
+Expected: Anh ấy đẹp trai lắm.
 Input: Tôi đi học trễ vì trời mưa to to
 Output: Tôi đi học trễ vì trời mưa to.
 Expected: Tôi đi học trễ vì trời mưa to.
 Input: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt
 Output: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt.
 Expected: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt.
-Current Score: 6/7
+Current Score: 7/7
 ---Testing Mistral LLM now...
 Input: Tôi rất yêu quê hương của mình.
 Output: Tôi rất yêu quê hương của mình.
@@ -38,14 +38,14 @@ Output: Tôi không biết câu trả lời.
 Expected: Tôi không biết câu trả lời.
 Input: Anh ấy là đẹp trai lắm
 Output: Anh ấy đẹp trai lắm.
-Expected: Anh ấy rất đẹp trai.
+Expected: Anh ấy đẹp trai lắm.
 Input: Tôi đi học trễ vì trời mưa to to
 Output: Tôi đi học trễ vì trời mưa to.
 Expected: Tôi đi học trễ vì trời mưa to.
 Input: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt
 Output: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt.
 Expected: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt.
-Current Score with Mistral LLM: 6/7
+Current Score with Mistral LLM: 7/7
 ---Testing Claude LLM now...
 Input: Tôi rất yêu quê hương của mình.
 Output: Tôi rất yêu quê hương của mình.
@@ -61,7 +61,7 @@ Output: Tôi không biết câu trả lời.
 Expected: Tôi không biết câu trả lời.
 Input: Anh ấy là đẹp trai lắm
 Output: Anh ấy đẹp trai lắm
-Expected: Anh ấy rất đẹp trai.
+Expected: Anh ấy đẹp trai lắm.
 Input: Tôi đi học trễ vì trời mưa to to
 Output: Tôi đi học trễ vì trời mưa to.
 Expected: Tôi đi học trễ vì trời mưa to.

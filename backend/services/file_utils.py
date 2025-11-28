@@ -24,4 +24,4 @@ def clear_file(file_path):
     """
     open(file_path, 'w', encoding='utf-8').close()
 # Example usage:
-write_to_file('output.txt', 'Hello, World!')
+# write_to_file('output.txt', 'Hello, World!')

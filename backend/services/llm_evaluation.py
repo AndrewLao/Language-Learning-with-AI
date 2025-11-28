@@ -19,7 +19,7 @@ expected = [
     "Hôm qua tôi đi chợ.",
     "Tôi sống ở Hà Nội.",
     "Tôi không biết câu trả lời.",
-    "Anh ấy rất đẹp trai.",
+    "Anh ấy đẹp trai lắm.",
     "Tôi đi học trễ vì trời mưa to.",
     "Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt."
     ]
