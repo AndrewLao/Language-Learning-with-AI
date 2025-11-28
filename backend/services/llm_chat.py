@@ -9,8 +9,13 @@ from langchain_core.prompts import (
 )
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
+# from mistralai import Mistral
+from langchain_mistralai.chat_models import ChatMistralAI
 import os
 load_dotenv()
+
+llm_mistral = ChatMistralAI(api_key=os.environ.get("MISTRAL_API_KEY"), model="open-mistral-nemo-2407")
+
 llm = ChatOpenAI(
     model="gpt-4o",
     api_key=os.environ.get("OPENAI_API_KEY"),
@@ -31,6 +36,7 @@ prompt_with_context = ChatPromptTemplate(messages_with_context)
 
 chain = prompt | llm | StrOutputParser()
 chain_with_context = prompt_with_context | llm | StrOutputParser()
+chain_with_context_mistral = prompt_with_context | llm_mistral | StrOutputParser()
 
 def get_session_history(session_id):
     return SQLChatMessageHistory(session_id, connection="sqlite:///chat_history.db")
@@ -49,6 +55,14 @@ runnable_with_history_with_context = RunnableWithMessageHistory(
     history_messages_key="history",
 )
 
+runnable_with_history_with_context_mistral = RunnableWithMessageHistory(
+    chain_with_context_mistral,
+    get_session_history,
+    input_messages_key="input",
+    history_messages_key="history",
+)
+
+
 def chat_with_llm(session_id, input):
     output = runnable_with_history.invoke(
         {"input": input}, config={"configurable": {"session_id": session_id}}
@@ -57,6 +71,13 @@ def chat_with_llm(session_id, input):
 
 def chat_with_llm_and_context(session_id, input, context_str):
     output = runnable_with_history_with_context.invoke(
+        {"input": input, "context": context_str},
+        config={"configurable": {"session_id": session_id}},
+    )
+    return output
+
+def chat_with_llm_and_context_mistral(session_id, input, context_str):
+    output = runnable_with_history_with_context_mistral.invoke(
         {"input": input, "context": context_str},
         config={"configurable": {"session_id": session_id}},
     )

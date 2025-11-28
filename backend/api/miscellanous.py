@@ -1,41 +1,48 @@
-from models.userschema import ChatSession, Message
+from datetime import datetime
 import os
-from pymongo import MongoClient
-import requests
+from pymongo import MongoClient, ReturnDocument
 import uuid
 
 
 def save_chat_turn_sync(chat_id: str, text: str, role: str = "system"):
-    base = "http://localhost:8000"
-    api_prefix = "/users"
-    # get existing messages
-    r = requests.get(f"{base}{api_prefix}/chats/{chat_id}/messages")
-    if r.status_code == 200:
-        msgs = r.json()
-        turn = len(msgs)
-    else:
-        turn = 0
+    mongo_client = MongoClient(os.environ.get("ATLAS_URI"))
+    db = mongo_client["language_app"]
+    collection = db["chat_sessions"]
 
-    msg = Message(message_id=str(uuid.uuid4()), turn=turn, role=role, text=text)
-    # model_dump(mode="json") returns JSON-serializable python types
-    payload = msg.model_dump(mode="json")
-    r2 = requests.post(f"{base}{api_prefix}/chats/{chat_id}/turns", json=payload)
-    print("save_chat_turn_sync response:", r2.status_code, r2.text)
-    try:
-        r2.raise_for_status()
-        data = r2.json()
-        chat = ChatSession(**data)  # validate shape
-        # success — do something with `chat`
-        print(f"Saved turn {turn} to chat {chat_id}")
-        return data
-    except requests.exceptions.HTTPError as http_err:
-        print("HTTP error:", http_err, r2.text)
-    except requests.exceptions.RequestException as req_err:
-        print("Network/timeout error:", req_err)
-    except Exception as e:
-        print("Response parsing/validation error:", e)
-    return None
+    # Calculate next turn number
+    doc = collection.find_one_and_update(
+        {"chat_id": chat_id},
+        {"$inc": {"next_turn": 1}},
+        return_document=ReturnDocument.BEFORE,
+    )
 
+    if not doc:
+        raise ValueError(f"Chat session {chat_id} not found")
+
+    assigned_turn = doc.get("next_turn", 0)
+
+    message = {
+        "message_id": str(uuid.uuid4()),
+        "turn": assigned_turn,
+        "role": role,
+        "text": text,
+        "timestamp": datetime.utcnow(),
+    }
+
+    collection.find_one_and_update(
+        {"chat_id": chat_id},
+        {
+            "$push": {"messages": message},
+            "$set": {
+                "last_message_at": datetime.utcnow(),
+                "last_seen_at": datetime.utcnow(),
+            },
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+
+    print(f"[DB] Inserted turn={assigned_turn} into chat={chat_id}")
+    return assigned_turn
 
 def fetch_short_term_memories(chat_id: str, limit: int = 10):
     mongo_client = MongoClient(os.environ.get("ATLAS_URI"))
@@ -46,7 +53,6 @@ def fetch_short_term_memories(chat_id: str, limit: int = 10):
 
     if not chat_doc:
         print(f"[STM] Chat session not found for chat_id={chat_id}")
-        # Debug sample
         sample = collection.find_one()
         print("[STM] Sample chat_sessions document:", sample)
         return []

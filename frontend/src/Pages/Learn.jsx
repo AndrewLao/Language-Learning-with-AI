@@ -2,12 +2,11 @@ import "./Learn.css"
 import LearnTextBox from "../Components/LearnTextbox";
 import TextDisplay from "../Components/TextDisplay";
 import ChatList from "../Components/ChatList";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 const API_INVOKE_AGENT = `${API_BASE}/agent/invoke-agent`;
-
 
 const Learn = () => {
     const [messages, setMessages] = useState([]);
@@ -15,20 +14,89 @@ const Learn = () => {
     const [selectedChat, setSelectedChat] = useState(null);
     const [chats, setChats] = useState([]);
 
+    const [lastIndex, setLastIndex] = useState(0);
+    const [fullyLoaded, setFullyLoaded] = useState(false);
+
+    // For spinner
+    const [loadingOlder, setLoadingOlder] = useState(false);
+
+    // Concurrency lock
+    const loadingOlderRef = useRef(false);
+
     const cleanAgentText = (text) => {
         if (!text) return "";
-
         return text
-            .replace(/\r\n/g, "\n")               // Normalize CRLF → LF
-            .replace(/\r/g, "\n")                 // Normalize CR → LF
-            .replace(/[\u2028\u2029]/g, "\n")     // Remove Unicode line separators
-            .replace(/[ \t]+\n/g, "\n")           // Trim spaces before newline
-            .replace(/\n[ \t]+/g, "\n")           // Trim spaces after newline
-            .replace(/\n{3,}/g, "\n")             // Collapse 2+ newlines → 1
-            .replace(/^\n+|\n+$/g, "")            // Trim leading/trailing newlines
+            .replace(/\r\n/g, "\n")
+            .replace(/\r/g, "\n")
+            .replace(/[\u2028\u2029]/g, "\n")
+            .replace(/[ \t]+\n/g, "\n")
+            .replace(/\n[ \t]+/g, "\n")
+            .replace(/\n{3,}/g, "\n")
+            .replace(/^\n+|\n+$/g, "")
             .trim();
     };
 
+    // Lazy Load Fetch
+    const fetchMessages = async (replace = false) => {
+        if (!selectedChat) return;
+
+        // Hard block duplicate calls
+        if (loadingOlderRef.current) {
+            console.log("[LazyLoad] BLOCKED: Already fetched");
+            return;
+        }
+
+        // No reason to load more
+        if (!replace && fullyLoaded) {
+            console.log("[LazyLoad] BLOCKED: Fully loaded");
+            return;
+        }
+
+        // Lock BEFORE async starts
+        loadingOlderRef.current = true;
+        setLoadingOlder(true);
+
+        console.log(`[LazyLoad] Fetching older messages | replace=${replace} index=${lastIndex}`);
+
+        const res = await axios.get(
+            `${API_BASE}/users/chats/${selectedChat}/messages`,
+            { params: { last_index: replace ? 0 : lastIndex } }
+        );
+
+        const formatted = res.data.map(m => ({
+            role: m.role === "system" ? "Agent" : "User",
+            content: m.text,
+        }));
+
+        // Deduplicate oldest overlapping messages
+        setMessages(prev => {
+            if (replace) return formatted;
+
+            const seen = new Set(prev.map(m => m.content));
+            const filtered = formatted.filter(m => !seen.has(m.content));
+
+            if (filtered.length === 0) {
+                console.log("[LazyLoad] No new messages — marking fully loaded");
+                setFullyLoaded(true);
+            }
+
+            return [...filtered, ...prev];
+        });
+
+        // Pagination update
+        setLastIndex(prev => prev + formatted.length);
+        if (formatted.length < 25) setFullyLoaded(true);
+
+        // UI unlock
+        setLoadingOlder(false);
+
+        // Unlock scroll after DOM adjusts (important)
+        requestAnimationFrame(() => {
+            loadingOlderRef.current = false;
+        });
+    };
+
+    // Send message
     const handleSend = async (text) => {
         if (!text.trim() || !selectedChat || loading) return;
         const currentChatId = selectedChat;
@@ -44,54 +112,40 @@ const Learn = () => {
                 input_string: text
             });
 
-            const rawReply = res.data?.result ?? "";
-            const reply = cleanAgentText(rawReply);
+            const reply = cleanAgentText(res.data?.result ?? "");
             const agentMessage = { role: "Agent", content: reply };
-            // Safety check to make sure message doesn't go into different chat
+
             setMessages(prev => {
-                if (selectedChat !== currentChatId) {
-                    return prev;
-                }
+                if (selectedChat !== currentChatId) return prev;
                 return [...prev, agentMessage];
             });
 
         } catch (err) {
-            console.error("Error invoking agent:", err);
             setMessages(prev => [...prev, {
                 role: "Agent",
                 content: "Sorry, something went wrong."
             }]);
+            console.log(err);
         } finally {
             setLoading(false);
         }
     };
 
-
+    // Load messages when chat changes
     useEffect(() => {
         if (!selectedChat) return;
 
-        const fetchMessages = async () => {
-            try {
-                const res = await axios.get(
-                    `${API_BASE}/users/chats/${selectedChat}/messages`,
-                    { params: { last_index: 0 } }
-                );
+        setMessages([]);
+        setLastIndex(0);
+        setFullyLoaded(false);
 
-                const formatted = res.data.map(m => ({
-                    role: m.role === "system" ? "Agent" : "User",
-                    content: m.text
-                }));
-                setMessages(formatted);
-            } catch (err) {
-                console.error("Error fetching messages:", err);
-                setMessages([]);
-            }
-        };
+        // Reset locks
+        loadingOlderRef.current = false;
 
-        fetchMessages();
+        fetchMessages(true);
     }, [selectedChat]);
 
-
+    // Auto-select first chat
     useEffect(() => {
         if (chats.length > 0 && !selectedChat) {
             setSelectedChat(chats[0].chat_id);
@@ -102,20 +156,23 @@ const Learn = () => {
         <div className="learn-container">
             <div className="learn-content">
                 <ChatList
-                    className="chat-list"
                     chats={chats}
                     selectedChat={selectedChat}
                     setSelectedChat={setSelectedChat}
                     setChats={setChats}
                 />
+
                 <div className="conversation-container">
                     {selectedChat ? (
                         <>
-                            <TextDisplay messages={messages} />
-                            <LearnTextBox
-                                onSend={handleSend}
-                                loading={loading}
+                            <TextDisplay
+                                key={selectedChat}
+                                messages={messages}
+                                loadingOlder={loadingOlder}
+                                fullyLoaded={fullyLoaded}
+                                onScrollTop={() => fetchMessages(false)}
                             />
+                            <LearnTextBox onSend={handleSend} loading={loading} />
                         </>
                     ) : (
                         <div className="no-chat-selected-message">
@@ -125,7 +182,7 @@ const Learn = () => {
                 </div>
             </div>
         </div>
-    )
+    );
 };
 
 export default Learn;
