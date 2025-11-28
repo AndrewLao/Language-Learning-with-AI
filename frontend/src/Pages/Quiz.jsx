@@ -337,6 +337,12 @@ const Quiz = () => {
                                                 </div>
                                             ) : (
                                                 <>
+                                                    <div className={`quiz-result-banner ${questions[currentIndex].user_answer === questions[currentIndex].answer ? "correct" : "incorrect"}`}>
+                                                        {questions[currentIndex].user_answer === questions[currentIndex].answer
+                                                            ? "✔ Correct!"
+                                                            : "✘ Incorrect"}
+                                                    </div>
+
                                                     <div className="quiz-explanation">
                                                         <h4>AI Explanation</h4>
                                                         <div className="quiz-explanation-box">
