@@ -133,10 +133,7 @@ class ManagerAgent:
         qdrant = self.db_client
         embeddings = self.embeddings
         query_text = state.get("user_input", "")
-        db=self.db
-
-        # Short-term memory from MongoDB
-        
+        db=self.db     
 
         # Only return metadata fields
         slice_query = {
@@ -155,8 +152,7 @@ class ManagerAgent:
             raise HTTPException(status_code=404, detail="No chat sessions found for this user")
         
         short_term = chat.get("messages", [])
-        short_texts = [msg["text"] for msg in short_term if "text" in msg]
-
+        
         # Long-term memory from Qdrant
         query_vector = list(embeddings.embed_query(query_text))
         long_term = qdrant.search(
@@ -167,18 +163,30 @@ class ManagerAgent:
             query_filter={"must": [{"key": "user_id", "match": {"value": user_id}}]}
         )
         
-        long_texts = []
+        # Format memories to match format_memory_context expectations
+        memories = []
+        
+        # Add short-term memories
+        for msg in short_term:
+            if "text" in msg:
+                memories.append({
+                    "memory_type": "short_term",
+                    "text": msg["text"]
+                })
+        
+        # Add long-term memories
         for hit in long_term:
             payload = hit.payload or {}
             category = str(payload.get("category", "misc")).strip()
-            summary = (payload.get("summary") or payload.get("text") or "").strip()
-            # Build the exact format you asked for:
-            formatted = f"{{{category}}} concept: {summary}"
-            if formatted:  # ignore empty rows
-                long_texts.append(formatted)
+            text = (payload.get("summary") or payload.get("text") or "").strip()
+            if text:
+                memories.append({
+                    "memory_type": "long_term",
+                    "category": category,
+                    "text": text
+                })
 
-        # Merge both
-        state["memories"] = short_texts + long_texts
+        state["memories"] = memories
         return state
 
     # Rag document search fro lesson plans and references
@@ -298,11 +306,9 @@ class ManagerAgent:
         graph.add_node("input", self.handle_user_prompt)
         graph.add_node("memories", self.retrieve_memories)
         graph.add_node("rag_docs", self.search_rag_documents)
-        graph.add_node("planner", self.planner)
         graph.add_node("router", self.router)
         graph.add_node("general_agent", self.general_agent)
         graph.add_node("memory_updater", self.update_memory)
-        graph.add_node("merge_docs", self.merge_docs)
 
     
 
@@ -329,9 +335,10 @@ class ManagerAgent:
 
 
 @router.post("/invoke-agent", response_model=SimpleMessageResponse)
-def invoke_agent(payload: SimpleMessageGet):
-    agent = ManagerAgent()
-    state = agent.invoke("test_user_id", "test_chat_id", payload.input_string)
+def invoke_agent(payload: SimpleMessageGet, db_fs=Depends(get_db_fs)):
+    db, fs = db_fs
+    agent = ManagerAgent(db=db)
+    state = agent.invoke(payload.user_id, payload.chat_id, payload.input_string)
     response_text = (
         state.get("response")
         if isinstance(state, dict)
