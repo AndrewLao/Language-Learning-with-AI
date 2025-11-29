@@ -32,6 +32,7 @@ class AgentState(dict):
     user_id: str
     chat_id: str
     user_input: str
+    lesson_id: int
     memories: list
     history: list
     docs: list
@@ -198,16 +199,31 @@ class ManagerAgent:
     def search_rag_documents(self, state: AgentState):
         print("Time search rag:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))      
         query_text = state.get("user_input", "")
+        lesson_id = state.get("lesson_id")
         embeddings = self.embeddings
         qdrant = self.db_client
 
         query_vector = list(embeddings.embed_query(query_text))
-        results = qdrant.search(
-            collection_name="vietnamese_store_with_metadata_indexed",
-            query_vector=query_vector,
-            limit=3,
-            with_payload=True
-        )
+        
+        # If lesson_id is provided, filter by that specific lesson
+        if lesson_id is not None:
+            print(f"[RAG] Searching lesson {lesson_id} specifically")
+            results = qdrant.search(
+                collection_name="vietnamese_store_with_metadata_indexed",
+                query_vector=query_vector,
+                limit=3,
+                with_payload=True,
+                query_filter={"must": [{"key": "lesson_index", "match": {"value": lesson_id}}]}
+            )
+        else:
+            print("[RAG] General search across all lessons")
+            results = qdrant.search(
+                collection_name="vietnamese_store_with_metadata_indexed",
+                query_vector=query_vector,
+                limit=3,
+                with_payload=True
+            )
+        
         docs = [r.payload.get("text", "") for r in results]
         state["docs"] = docs
         return state
@@ -320,28 +336,33 @@ class ManagerAgent:
         graph.add_edge("general_agent", "memory_updater")
         graph.add_edge("memory_updater", END)
         return graph
-
     # Executes the agent pipeline
-    def invoke(self, user_id, chat_id, user_input):
+    def invoke(self, user_id, chat_id, user_input, lesson_id=None):
         state = AgentState(
             user_id=user_id,
             chat_id=chat_id,
             user_input=user_input,
+            lesson_id=lesson_id,
             memories=[],
             docs=[],
             response="",
         )
         return self.app.invoke(state, config={"configurable": {"chat_id": chat_id}})
 
-
 @router.post("/invoke-agent", response_model=SimpleMessageResponse)
 def invoke_agent(payload: SimpleMessageGet, db_fs=Depends(get_db_fs)):
     db, fs = db_fs
     agent = ManagerAgent(db=db)
-    state = agent.invoke(payload.user_id, payload.chat_id, payload.input_string)
+    state = agent.invoke(
+        payload.user_id, 
+        payload.chat_id, 
+        payload.input_string,
+        lesson_id=payload.lesson_id
+    )
     response_text = (
         state.get("response")
         if isinstance(state, dict)
         else getattr(state, "response", "")
     )
+    return {"result": response_text}
     return {"result": response_text}

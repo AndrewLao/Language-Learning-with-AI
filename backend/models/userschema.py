@@ -8,6 +8,7 @@ class SimpleMessageGet(BaseModel):
     input_string: str
     user_id: str
     chat_id: str
+    lesson_id: Optional[int] = None
 
 class SimpleMessageResponse(BaseModel):
     result: str
