@@ -44,7 +44,6 @@ class UserProfileCreate(BaseModel):
     last_seen: Optional[datetime] = None
     score_streak: int = 0
     preferences: "UserPreferences" = Field(default_factory=lambda: UserPreferences())
-    lessons_completed: List[int] = Field(default_factory=list)
 
 
 # Schema for Edit Profile
@@ -52,7 +51,6 @@ class EditProfile(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
     preferences: Optional["UserPreferences"] = None
-    lessons_completed: Optional[List[int]] = None
 
 
 # Schema for Messages
