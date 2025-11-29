@@ -20,7 +20,7 @@ import ProtectedRoute from './Auth/ProtectedRoute.jsx';
 function AppWrapper() {
   const { pathname } = useLocation();
 
-  const showNavbar = !['', '/login', '/register'].includes(pathname);
+  const showNavbar = !['', '/', '/login', '/register'].includes(pathname);
   const showBanner = ![''].includes(pathname);
 
   return (

@@ -1,0 +1,72 @@
+Testing Vietnamese Grammar Correction LLM Evaluation
+
+Testing Primary LLM now...
+Input: Tôi rất yêu quê hương của mình.
+Output: Tôi rất yêu quê hương của mình.
+Expected: Tôi rất yêu quê hương của mình.
+Input: Hôm qua tôi đi chợ.
+Output: Hôm qua tôi đi chợ.
+Expected: Hôm qua tôi đi chợ.
+Input: Tôi sống ở trên Hà Nội.
+Output: Tôi sống ở Hà Nội.
+Expected: Tôi sống ở Hà Nội.
+Input: Hãy sửa câu sau thành phủ định: Tôi biết câu trả lời.
+Output: Tôi không biết câu trả lời.
+Expected: Tôi không biết câu trả lời.
+Input: Anh ấy là đẹp trai lắm
+Output: Anh ấy đẹp trai lắm.
+Expected: Anh ấy đẹp trai lắm.
+Input: Tôi đi học trễ vì trời mưa to to
+Output: Tôi đi học trễ vì trời mưa to.
+Expected: Tôi đi học trễ vì trời mưa to.
+Input: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt
+Output: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt.
+Expected: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt.
+Current Score: 7/7
+---Testing Mistral LLM now...
+Input: Tôi rất yêu quê hương của mình.
+Output: Tôi rất yêu quê hương của mình.
+Expected: Tôi rất yêu quê hương của mình.
+Input: Hôm qua tôi đi chợ.
+Output: Hôm qua tôi đi chợ.
+Expected: Hôm qua tôi đi chợ.
+Input: Tôi sống ở trên Hà Nội.
+Output: Tôi sống ở Hà Nội.
+Expected: Tôi sống ở Hà Nội.
+Input: Hãy sửa câu sau thành phủ định: Tôi biết câu trả lời.
+Output: Tôi không biết câu trả lời.
+Expected: Tôi không biết câu trả lời.
+Input: Anh ấy là đẹp trai lắm
+Output: Anh ấy đẹp trai lắm.
+Expected: Anh ấy đẹp trai lắm.
+Input: Tôi đi học trễ vì trời mưa to to
+Output: Tôi đi học trễ vì trời mưa to.
+Expected: Tôi đi học trễ vì trời mưa to.
+Input: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt
+Output: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt.
+Expected: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt.
+Current Score with Mistral LLM: 7/7
+---Testing Claude LLM now...
+Input: Tôi rất yêu quê hương của mình.
+Output: Tôi rất yêu quê hương của mình.
+Expected: Tôi rất yêu quê hương của mình.
+Input: Hôm qua tôi đi chợ.
+Output: Hôm qua tôi đi chợ.
+Expected: Hôm qua tôi đi chợ.
+Input: Tôi sống ở trên Hà Nội.
+Output: Tôi sống ở Hà Nội.
+Expected: Tôi sống ở Hà Nội.
+Input: Hãy sửa câu sau thành phủ định: Tôi biết câu trả lời.
+Output: Tôi không biết câu trả lời.
+Expected: Tôi không biết câu trả lời.
+Input: Anh ấy là đẹp trai lắm
+Output: Anh ấy đẹp trai lắm
+Expected: Anh ấy đẹp trai lắm.
+Input: Tôi đi học trễ vì trời mưa to to
+Output: Tôi đi học trễ vì trời mưa to.
+Expected: Tôi đi học trễ vì trời mưa to.
+Input: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt
+Output: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt.
+Expected: Chúng tôi sẽ đi du lịch vào cuối tuần này nếu thời tiết tốt.
+Current Score with Claude LLM: 6/7
+---

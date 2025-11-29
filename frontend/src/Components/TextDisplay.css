@@ -72,6 +72,39 @@
     text-align: right;
 }
 
+.chat-loading-older {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #aaa;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    opacity: 0.8;
+}
+
+.chat-loading-older::after {
+    content: " ";
+    margin-left: 6px;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #aaa;
+    border-top-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /*
 Markdown Support 
 */

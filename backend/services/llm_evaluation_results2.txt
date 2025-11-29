@@ -1,0 +1,69 @@
+Testing Vietnamese Language LLM Evaluation
+
+Testing Primary LLM now...
+Input: Choose the correct alphabet only (a, b, c or d) Từ hòa bình có nghĩa là gì?a) Chiến tranhb) Tình bạnc) Không có chiến tranh, sống yên ổnd) Học tập
+Output: c) không có chiến tranh, sống yên ổn
+Expected: c
+ score: 0 
+Input: Điền từ thích hợp vào chỗ trống: Con mèo ______ trên mái nhà.ngủ, bơi
+Output: ngủ
+Expected: ngủ
+ score: 1 
+Input: Từ nào trái nghĩa với hạnh phúc? bất hạnh, to lớn, nhanh, đẹp
+Output: bất hạnh
+Expected: bất hạnh
+ score: 2 
+Input: Từ đồng nghĩa với to lớn? nhỏ, khổng lồ, ngắn, nhẹ
+Output: khổng lồ
+Expected: khổng lồ
+ score: 3 
+Input: Lan đi bộ đến trường, đi bộ là loại từ nào?
+Output: động từ
+Expected: động từ
+ score: 4 
+Current Score: 4/5
+---Testing Mistral LLM now...
+Input: Choose the correct alphabet only (a, b, c or d) Từ hòa bình có nghĩa là gì?a) Chiến tranhb) Tình bạnc) Không có chiến tranh, sống yên ổnd) Học tập
+Output: c
+Expected: c
+ score: 1 
+Input: Điền từ thích hợp vào chỗ trống: Con mèo ______ trên mái nhà.ngủ, bơi
+Output: ngủ
+Expected: ngủ
+ score: 2 
+Input: Từ nào trái nghĩa với hạnh phúc? bất hạnh, to lớn, nhanh, đẹp
+Output: bất hạnh
+Expected: bất hạnh
+ score: 3 
+Input: Từ đồng nghĩa với to lớn? nhỏ, khổng lồ, ngắn, nhẹ
+Output: khổng lồ
+Expected: khổng lồ
+ score: 4 
+Input: Lan đi bộ đến trường, đi bộ là loại từ nào?
+Output: động từ
+Expected: động từ
+ score: 5 
+Current Score with Mistral LLM: 5/5
+---Testing Claude LLM now...
+Input: Choose the correct alphabet only (a, b, c or d) Từ hòa bình có nghĩa là gì?a) Chiến tranhb) Tình bạnc) Không có chiến tranh, sống yên ổnd) Học tập
+Output: c) không có chiến tranh, sống yên ổn
+Expected: c
+ score: 0 
+Input: Điền từ thích hợp vào chỗ trống: Con mèo ______ trên mái nhà.ngủ, bơi
+Output: ngủ
+Expected: ngủ
+ score: 1 
+Input: Từ nào trái nghĩa với hạnh phúc? bất hạnh, to lớn, nhanh, đẹp
+Output: bất hạnh
+Expected: bất hạnh
+ score: 2 
+Input: Từ đồng nghĩa với to lớn? nhỏ, khổng lồ, ngắn, nhẹ
+Output: khổng lồ
+Expected: khổng lồ
+ score: 3 
+Input: Lan đi bộ đến trường, đi bộ là loại từ nào?
+Output: đi bộ là động từ
+Expected: động từ
+ score: 3 
+Current Score with Claude LLM: 3/5
+---
