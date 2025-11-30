@@ -6,7 +6,7 @@ from pymongo import MongoClient
 from gridfs import GridFS
 from contextlib import asynccontextmanager
 # from api import agents, rag, users
-from api import users, agents, testingAgent
+from api import users, agents, testingAgent, writingAgent
 from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
@@ -40,6 +40,7 @@ app.add_middleware(
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(agents.router, prefix="/agent", tags=["Agent"])
 app.include_router(testingAgent.router, prefix="/test", tags=["Testing"])
+app.include_router(writingAgent.router, prefix="/test", tags=["Testing"])
 
 @app.get("/")
 def health_check():
