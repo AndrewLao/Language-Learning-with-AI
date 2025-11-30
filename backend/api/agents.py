@@ -5,13 +5,16 @@ from api.miscellanous import (
     format_memory_context,
 )
 from dotenv import load_dotenv
-from fastapi import APIRouter
-import json
+import os, time , uuid , json
+from fastapi import APIRouter, Depends, HTTPException , Request
+
+from datetime import datetime
+
 from langgraph.graph import StateGraph, END, START
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
+from pymongo import ReturnDocument
 from models.userschema import SimpleMessageGet, SimpleMessageResponse
-import os
 from pymongo import MongoClient
 from qdrant_client.http.models import PointStruct
 from services.rag_store_qdrant import get_qdrant_client, query_qdrant
@@ -21,12 +24,15 @@ import uuid
 load_dotenv()
 
 router = APIRouter()
+def get_db_fs(request: Request):
+    return request.app.state.db, request.app.state.fs
 
 
 class AgentState(dict):
     user_id: str
     chat_id: str
     user_input: str
+    lesson_id: int
     memories: list
     history: list
     docs: list
@@ -34,7 +40,8 @@ class AgentState(dict):
 
 
 class ManagerAgent:
-    def __init__(self, llm_model="gpt-5"):
+    def __init__(self, llm_model="gpt-5", db=None):
+        self.db=db
         self.agents = {"general_agent": self.general_agent}
         self.router = self.default_router
         self.llm = ChatOpenAI(model=llm_model)
@@ -117,91 +124,116 @@ class ManagerAgent:
     def handle_user_prompt(self, state: AgentState):
         return {"user_input": state["user_input"]}
 
+    # Incomplete state for now until user memories updates are done
+    # TODO Complete Function and Finish Short Term memory retrieval
+    # TODO Make prompt to get memory if necessary to not use user input
+    
     def retrieve_memories(self, state: AgentState):
-        print(
-            "Time retrieve memories:",
-            time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-        )
-
+        user_id = state["user_id"]
+        chat_id = state["chat_id"]
+        qdrant = self.db_client
+        embeddings = self.embeddings
         query_text = state.get("user_input", "")
+        db=self.db     
 
-        # SHORT TERM MEMORY  (chat history from MongoDB)
-        stm_strings = fetch_short_term_memories(state["chat_id"], limit=10)
+        # Only return metadata fields
+        slice_query = {
+            "_id": 0,
+            "messages": {"$slice": [-25, 25]},  # fetch last 25 messages only
+        }
 
-        short_term_memories = [
-            {
-                "text": msg,
-                "memory_type": "short_term",
-            }
-            for msg in stm_strings
-        ]
-
-        # LONG TERM MEMORY  (vector DB, category as known, troubled, or unknown)
-        long_term_memories = []
-        query_vector = list(self.embeddings.embed_query(query_text))
-
-        if self.db_client.collection_exists("user_memories"):
-            search_result = self.db_client.search(
-                collection_name="user_memories",
-                query_vector=query_vector,
-                query_filter={
-                    "must": [{"key": "user_id", "match": {"value": state["user_id"]}}]
-                },
-                limit=5,
-            )
-
-            long_term_memories = [
-                {
-                    "text": hit.payload.get("text", ""),
-                    "memory_type": "long_term",
-                    "category": hit.payload.get("category", "unknown"),
-                }
-                for hit in search_result
-            ]
-
-        combined = short_term_memories + long_term_memories
-        return {"memories": combined}
-
-    def search_rag_documents(self, state: AgentState):
-        print("Time search rag:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        query_text = state.get("rag_query", state.get("user_input", ""))
-        # TODO Integrate metadata from documents to do lesson order
-        # TODO Integrate mongo for lessons completed
-        # TODO Make prompt here for RAG retrieval not based on user input
-        # TODO After the lessons are finished work on getting user documents loaded
-        # query_vector = list(self.embeddings.embed_query(query_text))
-
-        # search_result = self.db_client.search(
-        #     collection_name="vietnamese_store", query_vector=query_vector, limit=1
-        # )
-
-        search_result = query_qdrant("vietnamese_store", query_text, top_k=1)
-
-        docs = [hit.payload.get("text", "") for hit in search_result]
-        print(f"[RAG SEARCH] ", docs)
-        return {"docs": docs}
-
-    # Decides what the agent will do with the message
-    # Probably not needed but I'll keep it here for now
-    def planner(self, state: AgentState):
-        print("Time planner:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        # Another prompt goes here if we decide that there is a specialized case
-        return {}
-
-    # Required because of graph layout
-    # Handles updating both memories and rag document outputs
-    def merge_docs(self, state: AgentState, **kwargs):
-        print("Time merge docs:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        combined = state.get("memories", []) + state.get("docs", [])
-        return {"docs": combined}
-
-    # Incomplete State
-    # TODO Finish short term memory and add mongo
-    # TODO Test memory functions
-    def update_memory(self, state: AgentState):
-        print(
-            "Time update memory:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        chat = db.chat_sessions.find_one_and_update(
+            {"chat_id": chat_id, "user_id": user_id},
+            {"$set": {"last_seen_at": datetime.utcnow()}},
+            projection=slice_query,
+            return_document=ReturnDocument.AFTER
         )
+
+        if not chat:
+            raise HTTPException(status_code=404, detail="No chat sessions found for this user")
+        
+        short_term = chat.get("messages", [])
+        
+        # Long-term memory from Qdrant
+        query_vector = list(embeddings.embed_query(query_text))
+        long_term = qdrant.search(
+            collection_name="user_memories",
+            query_vector=query_vector,
+            limit=10,
+            with_payload=True,
+            query_filter={"must": [{"key": "user_id", "match": {"value": user_id}}]}
+        )
+        
+        # Format memories to match format_memory_context expectations
+        memories = []
+        
+        # Add short-term memories
+        for msg in short_term:
+            if "text" in msg:
+                memories.append({
+                    "memory_type": "short_term",
+                    "text": msg["text"]
+                })
+        
+        # Add long-term memories
+        for hit in long_term:
+            payload = hit.payload or {}
+            category = str(payload.get("category", "misc")).strip()
+            text = (payload.get("summary") or payload.get("text") or "").strip()
+            if text:
+                memories.append({
+                    "memory_type": "long_term",
+                    "category": category,
+                    "text": text
+                })
+
+        state["memories"] = memories
+        return state
+
+    # Rag document search fro lesson plans and references
+    #     # TODO Integrate metadata from documents to do lesson order
+    #     # TODO Integrate mongo for lessons completed
+    #     # TODO Make prompt here for RAG retrieval not based on user input
+    
+    
+    def search_rag_documents(self, state: AgentState):
+        print("Time search rag:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))      
+        query_text = state.get("user_input", "")
+        lesson_id = state.get("lesson_id")
+        embeddings = self.embeddings
+        qdrant = self.db_client
+
+        query_vector = list(embeddings.embed_query(query_text))
+        
+        # If lesson_id is provided, filter by that specific lesson
+        if lesson_id is not None:
+            print(f"[RAG] Searching lesson {lesson_id} specifically")
+            results = qdrant.search(
+                collection_name="vietnamese_store_with_metadata_indexed",
+                query_vector=query_vector,
+                limit=3,
+                with_payload=True,
+                query_filter={"must": [{"key": "lesson_index", "match": {"value": lesson_id}}]}
+            )
+        else:
+            print("[RAG] General search across all lessons")
+            results = qdrant.search(
+                collection_name="vietnamese_store_with_metadata_indexed",
+                query_vector=query_vector,
+                limit=3,
+                with_payload=True
+            )
+        
+        docs = [r.payload.get("text", "") for r in results]
+        state["docs"] = docs
+        return state
+
+    # Updates long-term memory based on agent response    
+    def update_memory(self, state: AgentState,Db_fs=Depends(get_db_fs)):
+        print("Time update memory:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        user_id = state["user_id"]
+        qdrant = self.db_client
+        embeddings = self.embeddings
         if not self.db_client.collection_exists("user_memories"):
             raise RuntimeError(
                 "user_memories collection does not exist; create it before updating memories."
@@ -285,50 +317,47 @@ class ManagerAgent:
         graph.add_node("input", self.handle_user_prompt)
         graph.add_node("memories", self.retrieve_memories)
         graph.add_node("rag_docs", self.search_rag_documents)
-        graph.add_node("planner", self.planner)
         graph.add_node("router", self.router)
         graph.add_node("general_agent", self.general_agent)
         graph.add_node("memory_updater", self.update_memory)
-        graph.add_node("merge_docs", self.merge_docs)
 
+    
+
+        # Simplified edges for single agent
         graph.add_edge(START, "input")
-        graph.add_edge("input", "memories")
-        graph.add_edge("memories", "rag_docs")
-        graph.add_edge("rag_docs", "merge_docs")
-        graph.add_edge("merge_docs", "planner")
-        graph.add_edge("planner", "router")
-        # Route to agent (currently only general_agent)
-        graph.add_edge("router", "general_agent")
+        graph.add_edge("input", "rag_docs")
+        graph.add_edge("rag_docs", "memories")
+        graph.add_edge("memories", "general_agent")
         graph.add_edge("general_agent", "memory_updater")
         graph.add_edge("memory_updater", END)
-
         return graph
-
     # Executes the agent pipeline
-    def invoke(self, user_id, chat_id, user_input):
+    def invoke(self, user_id, chat_id, user_input, lesson_id=None):
         state = AgentState(
             user_id=user_id,
             chat_id=chat_id,
             user_input=user_input,
+            lesson_id=lesson_id,
             memories=[],
             docs=[],
             response="",
         )
         return self.app.invoke(state, config={"configurable": {"chat_id": chat_id}})
 
-
 @router.post("/invoke-agent", response_model=SimpleMessageResponse)
-def invoke_agent(payload: SimpleMessageGet):
-    agent = ManagerAgent()
+def invoke_agent(payload: SimpleMessageGet, db_fs=Depends(get_db_fs)):
+    db, fs = db_fs
+    agent = ManagerAgent(db=db)
     state = agent.invoke(
-        # "343", "2a8bf31a-4307-4f16-b382-7a6a6057915b"
-        payload.user_id,
-        payload.chat_id,
+        payload.user_id, 
+        payload.chat_id, 
         payload.input_string,
+        lesson_id=payload.lesson_id
     )
     response_text = (
         state.get("response")
         if isinstance(state, dict)
         else getattr(state, "response", "")
     )
+    return {"result": response_text}
     return {"result": response_text}

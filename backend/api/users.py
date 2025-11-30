@@ -14,7 +14,15 @@ from models.userschema import (
 from typing import List, Optional
 from pathlib import Path
 import tempfile
-import uuid
+import os, uuid
+from dotenv import load_dotenv
+from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams
+from qdrant_client.http.models import PointStruct
 
 router = APIRouter()
 
@@ -55,6 +63,7 @@ def create_user_profile(payload: UserProfileCreate, db_fs=Depends(get_db_fs)):
         email=payload.email,
         last_seen=now,
         score_streak=1,
+        lessons_completed=[],
     )
     db.user_profiles.insert_one(profile.model_dump())
     return profile
@@ -256,8 +265,11 @@ User Document Management
 @router.post("/upload/{user_id}")
 async def upload_document(user_id: str, file: UploadFile, db_fs=Depends(get_db_fs)):
     # Save file into GridFS
+    pdf_bytes = await file.read()
+
+    # Save PDF to GridFS
     db, fs = db_fs
-    file_id = fs.put(await file.read(), filename=file.filename)
+    file_id = fs.put(pdf_bytes, filename=file.filename)
 
     # Save metadata
     doc_id = str(uuid.uuid4())

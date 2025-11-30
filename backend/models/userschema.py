@@ -9,6 +9,7 @@ class SimpleMessageGet(BaseModel):
     input_string: str
     user_id: str
     chat_id: str
+    lesson_id: Optional[int] = None
 
 
 class SimpleMessageResponse(BaseModel):
@@ -31,6 +32,7 @@ class UserProfile(BaseModel):
     email: EmailStr
     last_seen: Optional[datetime] = None
     score_streak: int = 0
+    preferences: "UserPreferences" = Field(default_factory=lambda: UserPreferences())
     documents: List[UserDocument] = Field(default_factory=list)
 
 
@@ -41,12 +43,14 @@ class UserProfileCreate(BaseModel):
     email: EmailStr
     last_seen: Optional[datetime] = None
     score_streak: int = 0
+    preferences: "UserPreferences" = Field(default_factory=lambda: UserPreferences())
 
 
 # Schema for Edit Profile
 class EditProfile(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
+    preferences: Optional["UserPreferences"] = None
 
 
 # Schema for Messages
@@ -79,6 +83,36 @@ class ChatSession(BaseModel):
     pinned: bool = False
     agent_context: Optional[AgentContext] = None
 
+# Separate model for user preference categories
+class UserPreferences(BaseModel):
+    movies: bool = False
+    games: bool = False
+    anime: bool = False
+    travel: bool = False
+    technology: bool = False
+    outdoors: bool = False
+    podcasts: bool = False
+    books: bool = False
+    music: bool = False
+    fitness: bool = False
+    cooking: bool = False
+    art: bool = False
+    pets: bool = False
+    photography: bool = False
+
+# Schema for User WriteUps
+class WriteUp(BaseModel):
+    writeup_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    title: str
+    content: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class WriteUpCreate(BaseModel):
+    user_id: str
+    title: str
+    content: str
 
 class QuizQuestionResult(BaseModel):
     question: str
