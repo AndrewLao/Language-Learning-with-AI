@@ -89,6 +89,9 @@ class ManagerAgent:
         correction, and short quiz-like interactions. 
         
         You have access to Vietnamese reference documents — these serve as lesson plans and grammar guides.
+        If given reference document(s), use those to explain the topic first before anything else. Do not give a quiz unless
+        your Short-Term memory shows that you've recently explained the topic in the reference(s).
+        You may be given documents with no clear direction. In those cases come up with your own lesson to best explain the topic.
         
         You have access to two types of memories:
         - "Short-Term": Information about the current chat session.
@@ -246,11 +249,11 @@ class ManagerAgent:
 
         classification_prompt = f"""
         Analyze the following text from a Vietnamese tutoring session and respond in JSON.
-        The text below comes from the tutor. 
+        The text below comes from the tutor. The section listed as User came from the User.
 
         Your job:
         - Determine if the text reflects *confusion or mistakes* ("troubled")
-        or *confidence and understanding* ("known").
+        or *confidence and understanding* ("known") from the User.
         - If the text represents neither, mark it as ("misc").
         - Summarize the main concept or learning point being discussed.
 
@@ -262,6 +265,9 @@ class ManagerAgent:
 
         Text:
         {response_text}
+        
+        User:
+        {state.get("user_input", "")}
         """
         # Fallback in case the JSON doesn't work
         parsed = {"category": "known", "summary": response_text[:100]}
@@ -330,12 +336,13 @@ class ManagerAgent:
         return graph
 
     # Executes the agent pipeline
-    def invoke(self, user_id, chat_id, user_input, lesson_id=None):
+    def invoke(self, user_id, chat_id, user_input, lesson_id=None, preferences=None):
         state = AgentState(
             user_id=user_id,
             chat_id=chat_id,
             user_input=user_input,
             lesson_id=lesson_id,
+            preferences=preferences,
             memories=[],
             docs=[],
             response="",
