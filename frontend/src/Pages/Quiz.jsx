@@ -8,8 +8,8 @@ const API_QUIZ_SUBMIT = `${API_BASE}/users/quiz/submit`;
 const API_QUIZ_HISTORY = `${API_BASE}/users/quiz`;
 
 const builtInQuizzes = [
-    { id: 1, title: "AI Generated Quiz" },
-
+    { id: 1, title: "Vocabulary" },
+    { id: 2, title: "Pronoun" },
 ];
 
 const Quiz = () => {
@@ -42,9 +42,7 @@ const Quiz = () => {
     // Currently selected past quiz
     const [reviewQuiz, setReviewQuiz] = useState(null);
 
-    // ------------------------------------------
-    // Load past quizzes from backend
-    // ------------------------------------------
+    // Load past quizzes
     const loadPastQuizzes = async () => {
         setLoadingPast(true);
         try {
@@ -60,9 +58,7 @@ const Quiz = () => {
         loadPastQuizzes();
     }, []);
 
-    // ------------------------------------------
-    // Start a new generated quiz
-    // ------------------------------------------
+    // Create quiz
     const loadQuiz = async () => {
         setMode("active");
         setLoading(true);
@@ -76,8 +72,10 @@ const Quiz = () => {
         setSaveSuccess(false);
 
         try {
+            const selectedQuiz = builtInQuizzes.find((q) => q.id === selectedId);
+
             const res = await axios.post(API_INVOKE_AGENT_TEST, {
-                input_string: "Generate quiz questions",
+                input_string: selectedQuiz.title,
                 user_id: userId,
                 chat_id: "quiz-session"
             });

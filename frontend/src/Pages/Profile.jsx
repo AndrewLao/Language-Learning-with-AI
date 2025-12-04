@@ -53,10 +53,10 @@ const Profile = () => {
 
                 setStreak(resp.data.score_streak);
 
-                if (resp.data.preferences) {
-                    setSelectedPrefs(resp.data.preferences);
-                    setPrefDraft(resp.data.preferences);
-                }
+                // if (resp.data.preferences) {
+                //     setSelectedPrefs(resp.data.preferences);
+                //     setPrefDraft(resp.data.preferences);
+                // }
             } catch (err) {
                 console.error(err);
             }
