@@ -14,6 +14,8 @@ router = APIRouter()
 class AgentState(dict):
     user_id: str
     chat_id: str
+    doc_id: str
+    written_text: str
     user_input: str
     memories: list
     docs: list
@@ -30,7 +32,7 @@ class ManagerAgent:
 
     def general_agent(self, state: AgentState):
         print("Time general agent:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        written_text = state.get("user_input", "")
+        documents = state.get("memories", [])
         prompt = f"""
         You are a Vietnamese writing assistant for English natives.
         Read this text in that could be in English, Vietnamese, or a mix of both. Give suggestions to the Vietnamese portions.
@@ -42,22 +44,26 @@ class ManagerAgent:
         Respond in English with the following JSON format:
         JSON FORMAT: (("category_label": "spelling, grammar, etc", "suggestion": "suggestion"), ("category_label": "", "suggestion": ""), ...etc.)
         Limit each suggestion to maximum 25 words. You may have multiple suggestions.
-        TEXT: {written_text}
+        TEXT: {documents}
         """
         
         resp = self.llm.invoke(prompt)
-        print("Generated response:", resp.content.strip())
-
         return {"response": resp.content}
 
     # Aux step to filter incoming text
     def handle_user_prompt(self, state: AgentState):
         print("Time user prompt:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        return {"user_input": state["user_input"]}
+        return {}
 
     def retrieve_memories(self, state: AgentState):
         print("Time retrieve memories:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        return {"memories": []}
+        user_id = state['user_id']
+        doc_id = state['doc_id']
+        print("user id", user_id, "document id", doc_id)
+        docs = self.mongo_client['language_app'].user_documents.find_one({"user_id": state['user_id'], "doc_id": state['doc_id']}, 
+                                                                     {"_id": 0, "text_extracted": 1, "file_name": 1})
+        print("Retrieved document for memories:", docs)
+        return {"memories": [docs['text_extracted']] if docs else []}
 
     def search_rag_documents(self, state: AgentState):
         return {}
@@ -97,11 +103,11 @@ class ManagerAgent:
         return graph
 
     # Executes the agent pipeline
-    def invoke(self, user_id, chat_id, user_input):
+    def invoke(self, user_id, chat_id, doc_id):
         state = AgentState(
             user_id=user_id,
             chat_id=chat_id,
-            user_input=user_input,
+            doc_id=doc_id,
             memories=[],
             docs=[],
             response=""
@@ -124,11 +130,10 @@ def invoke_agent(payload: dict):
 
     chat_id = payload.get("chat_id")
     user_id = payload.get("user_id")
+    doc_id = payload.get("doc_id")
 
-    # Use `input_string` as the single input field for both asking and answering
-    input_string = payload.get("input_string", "")
 
-    state = agent.invoke(user_id, chat_id, input_string)
+    state = agent.invoke(user_id, chat_id, doc_id)
    
     response_text = (
         state.get("response", "{}").strip()

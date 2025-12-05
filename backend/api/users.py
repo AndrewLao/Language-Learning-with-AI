@@ -1,6 +1,6 @@
-from fastapi import APIRouter, UploadFile, HTTPException, Depends, Request, Query
+from fastapi import Response, APIRouter, UploadFile, HTTPException, Depends, Request, Query
 from fastapi.responses import FileResponse
-from datetime import datetime, timedelta
+from datetime import datetime
 from pymongo import ReturnDocument
 from models.userschema import (
     UserProfile,
@@ -9,23 +9,37 @@ from models.userschema import (
     ChatSession,
     Message,
     QuizPost,
-    QuizQuestionResult
+
 )
 from typing import List, Optional
 from pathlib import Path
 import tempfile
-import os, uuid
-from dotenv import load_dotenv
-from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
-
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams
-from qdrant_client.http.models import PointStruct
+import  uuid
+from pypdf import PdfReader
+import io
+from fpdf import FPDF
+import io
+from pathlib import Path
 
 router = APIRouter()
 
+def text_to_pdf_bytes(text: str) -> bytes:
+    pdf = FPDF()
+    pdf.add_page()
+    # pdf.set_font("Arial", size=12)
+    # Register a Unicode TrueType font that supports Vietnamese
+    font_path = Path(__file__).parent / "dejavu-sans.ttf"
+    pdf.add_font("DejaVu", "", str(font_path), uni=True)
+    pdf.set_font("DejaVu", "", 12)
+
+    # for line in (text or "").splitlines() or [""]:
+    #     pdf.cell(0, 10, txt=line, ln=1)
+    pdf.multi_cell(w=0, h=8, txt=text)
+
+    # dest="S" returns the PDF as a Latin‑1 encoded string in fpdf 1.x
+    pdf_str = pdf.output(dest="S")          # type: ignore
+    pdf_bytes = pdf_str.encode("latin1")    # convert to bytes
+    return pdf_bytes
 
 def get_db_fs(request: Request):
     return request.app.state.db, request.app.state.fs
@@ -147,8 +161,6 @@ def get_score_streak(user_id: str, db_fs=Depends(get_db_fs)):
 # Chat Session Management
 # Endpoints: (1) create new chat session (2) save a new turn in chat session (3) list all chat sessions for a user (4) retrieve a specific chat session
 # """
-
-
 # (1) create new chat session
 @router.post("/chats", response_model=ChatSession, status_code=201)
 def create_new_chat(
@@ -271,6 +283,10 @@ async def upload_document(user_id: str, file: UploadFile, db_fs=Depends(get_db_f
     db, fs = db_fs
     file_id = fs.put(pdf_bytes, filename=file.filename)
 
+    # Extract text from the in-memory bytes
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    text = "".join(page.extract_text() or "" for page in reader.pages)  # plain text [web:22]
+
     # Save metadata
     doc_id = str(uuid.uuid4())
     db.user_documents.insert_one(
@@ -281,10 +297,36 @@ async def upload_document(user_id: str, file: UploadFile, db_fs=Depends(get_db_f
             "storage": "gridfs",
             "gridfs_id": file_id,
             "created_at": datetime.utcnow(),
+            "text_extracted": text,
             "processed": False,
         }
     )
-    return {"doc_id": doc_id, "file_name": file.filename}
+    return {"doc_id": doc_id, "file_name": file.filename, "text": text}
+
+# Upload text document (convert to PDF and store)   
+@router.post("/upload-text/{user_id}/{file_name}")
+async def upload_text_document(user_id: str, file_name: str, payload: dict, db_fs=Depends(get_db_fs)):
+    db, fs = db_fs
+    text = payload["text"]
+
+    pdf_bytes = text_to_pdf_bytes(text)
+    file_id = fs.put(pdf_bytes, filename=f"{file_name}.pdf")
+
+    # Save metadata
+    doc_id = str(uuid.uuid4())
+    db.user_documents.insert_one(
+        {
+            "doc_id": doc_id,
+            "user_id": user_id,
+            "file_name": file_name,
+            "storage": "gridfs",
+            "gridfs_id": file_id,
+            "created_at": datetime.utcnow(),
+            "text_extracted": text,
+            "processed": False,
+        }
+    )
+    return {"doc_id": doc_id, "file_name": file_name, "text": text}
 
 
 # List all User Documents
@@ -300,7 +342,7 @@ def list_documents(user_id: str, db_fs=Depends(get_db_fs)):
     return {"documents": docs}
 
 
-# Retrive a specific document
+# Retrieve a specific document
 @router.get("/documents/{user_id}/{doc_id}")
 def download_document(user_id: str, doc_id: str, db_fs=Depends(get_db_fs)):
     db, fs = db_fs
@@ -309,10 +351,29 @@ def download_document(user_id: str, doc_id: str, db_fs=Depends(get_db_fs)):
         raise HTTPException(status_code=404, detail="Document not found")
 
     gridout = fs.get(doc["gridfs_id"])
-    tmp_path = Path(tempfile.gettempdir()) / doc["file_name"]
-    with open(tmp_path, "wb") as f:
-        f.write(gridout.read())
-    return FileResponse(tmp_path, filename=doc["file_name"])
+    pdf_bytes = gridout.read()  # bytes from GridFS
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{doc["file_name"]}"'
+        },
+    )
+    # tmp_path = Path(tempfile.gettempdir()) / doc["file_name"]
+    # with open(tmp_path, "wb") as f:
+    #     f.write(gridout.read())
+    # return FileResponse(tmp_path, filename=doc["file_name"])
+
+# Retrieve a specific document's content
+@router.get("/documents/{user_id}/{doc_id}/text")
+def download_document(user_id: str, doc_id: str, db_fs=Depends(get_db_fs)):
+    db, fs = db_fs
+    doc = db.user_documents.find_one({"user_id": user_id, "doc_id": doc_id},
+                                     {"_id": 0, "text_extracted": 1, "file_name": 1})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return doc
 
 
 # Delete a specific document
