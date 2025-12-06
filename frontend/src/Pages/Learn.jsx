@@ -106,11 +106,23 @@ const Learn = () => {
         setMessages(prev => [...prev, userMessage]);
 
         try {
-            const res = await axios.post(`${API_INVOKE_AGENT}`, {
+            const selectedChatObj = chats.find(c => c.chat_id === selectedChat);
+
+            let payload = {
                 user_id: localStorage.getItem('cognitoSub') || 'test_user',
                 chat_id: currentChatId,
                 input_string: text
-            });
+            };
+
+            if (selectedChatObj && typeof selectedChatObj.chat_name === "string") {
+                const match = selectedChatObj.chat_name.match(/^Lesson ([1-9][0-9]*)$/);
+                if (match) {
+                    const lessonId = Number(match[1]);
+                    payload.lesson_id = lessonId;
+                }
+            }
+
+            const res = await axios.post(API_INVOKE_AGENT, payload);
 
             const reply = cleanAgentText(res.data?.result ?? "");
             const agentMessage = { role: "Agent", content: reply };
@@ -121,15 +133,16 @@ const Learn = () => {
             });
 
         } catch (err) {
+            console.log(err);
             setMessages(prev => [...prev, {
                 role: "Agent",
                 content: "Sorry, something went wrong."
             }]);
-            console.log(err);
         } finally {
             setLoading(false);
         }
     };
+
 
     // Load messages when chat changes
     useEffect(() => {
