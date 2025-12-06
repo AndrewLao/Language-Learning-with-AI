@@ -105,3 +105,61 @@ def format_memory_context(memories: list) -> str:
         lines.append("")
 
     return "\n".join(lines).strip() if lines else ""
+
+
+def load_user_preferences(user_id: str) -> str:
+    try:
+        mongo_client = MongoClient(os.environ.get("ATLAS_URI"))
+        db = mongo_client["language_app"]
+
+        doc = db.user_profiles.find_one(
+            {"user_id": user_id}, {"_id": 0, "preferences": 1}
+        )
+
+        if not doc:
+            print(f"[PREF] No profile found for user {user_id}")
+            return "None provided"
+
+        prefs = doc.get("preferences", [])
+        if not isinstance(prefs, list):
+            print(f"[PREF] Invalid preferences format for user {user_id}: {prefs}")
+            return "None provided"
+
+        normalized = []
+        for p in prefs:
+            if isinstance(p, str):
+                normalized.append(p.lower())
+
+        print(f"[PREF] Loaded preferences for user {user_id}: {normalized}")
+
+        # Return as a stable string
+        return ", ".join(normalized) if normalized else ""
+
+    except Exception as e:
+        print(f"[PREF] Error loading preferences for user {user_id}: {e}")
+        return ""
+
+    except Exception as e:
+        print(f"[PREF] Error loading preferences for user {user_id}: {e}")
+        return []
+    
+    
+def normalize_llm_response(resp_content):
+    """
+    Ensures LLM output is always converted into a clean string.
+    Supports:
+    - direct strings
+    - new OpenAI structured outputs (list of {type: 'text', text: ...})
+    - fallback types
+    """
+    if isinstance(resp_content, str):
+        return resp_content
+
+    if isinstance(resp_content, list):
+        parts = []
+        for block in resp_content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(block.get("text", ""))
+        return "\n".join(parts)
+
+    return str(resp_content)

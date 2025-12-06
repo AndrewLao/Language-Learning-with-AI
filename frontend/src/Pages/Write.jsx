@@ -6,36 +6,38 @@ import RichTextEditor from "../Components/RichTextEditor"
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 const userId = localStorage.getItem('cognitoSub') || 'test_user';
 
-const sampleFeedback = [
-    {
-        title: "Grammar Suggestion",
-        details: "Consider revising the sentence: 'He go to school every day.' to 'He goes to school every day.'"
-    },
-    {
-        title: "Vocabulary Enhancement",
-        details: "Try using 'astonished' instead of 'surprised' for a stronger impact in your third paragraph."
-    },
-    {
-        title: "Sentence Structure",
-        details: "Your second sentence is a run-on. Break it into two shorter sentences for clarity."
-    },
-    {
-        title: "Spelling Correction",
-        details: "Check the spelling of 'definately' in the last section. It should be 'definitely'."
-    }
-];
 
 const Write = () => {
+    // General utilities
     const [expanded, setExpanded] = useState([]);
     const [showNewTooltip, setShowNewTooltip] = useState(false);
     const [showUploadTooltip, setShowUploadTooltip] = useState(false);
+
+    // Document list management
     const [documents, setDocuments] = useState([]);
     const [selectedId, setSelectedId] = useState(null);
     const fileInputRef = useRef(null);
     const [pdfUrl, setPdfUrl] = useState(null);
     const [viewMode, setViewMode] = useState("editor");
+
+    // Delete Modal
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+    // Getting editor text
+    const [editorText, setEditorText] = useState({ html: "", text: "" });
+
+    // Feedback
+    const [aiFeedback, setAiFeedback] = useState([]);
+    const [feedbackLoading, setFeedbackLoading] = useState(false);
+    const [feedbackCache, setFeedbackCache] = useState({});
+    const [currentFeedback, setCurrentFeedback] = useState(null);
+
+    // Submit modal
+    const [showNameModal, setShowNameModal] = useState(false);
+    const [newDocName, setNewDocName] = useState("");
+
+    const hasRealText = editorText.text.trim().length > 0;
 
     const toggleExpand = (idx) => {
         setExpanded(expanded =>
@@ -57,6 +59,7 @@ const Write = () => {
 
                 if (resp.data.documents.length > 0) {
                     setSelectedId(resp.data.documents[0].doc_id);
+                    setViewMode("pdf");
                 }
             } catch (err) {
                 console.error("Failed to load documents:", err);
@@ -148,6 +151,88 @@ const Write = () => {
     };
 
 
+    const handleGetFeedback = async () => {
+        if (!selectedId) return;
+
+        try {
+            setFeedbackLoading(true);
+
+            const resp = await axios.post(`${API_BASE}/writing/invoke-agent-writing`, {
+                user_id: userId,
+                chat_id: "writing",
+                doc_id: selectedId
+            });
+
+            const feedbackArray = Array.isArray(resp.data) ? resp.data : [];
+
+            setCurrentFeedback(feedbackArray);
+            setAiFeedback(feedbackArray);
+
+            setFeedbackCache(prev => ({
+                ...prev,
+                [selectedId]: feedbackArray
+            }));
+
+        } catch (err) {
+            console.error("Feedback error:", err);
+        } finally {
+            setFeedbackLoading(false);
+        }
+    };
+
+
+    const submitText = async () => {
+        if (!newDocName.trim()) {
+            alert("Please enter a valid document name.");
+            return;
+        }
+        if (!hasRealText) {
+            alert("Document is empty — please write something first.");
+            return;
+        }
+
+        try {
+            const fileName = newDocName.trim();
+
+            const resp = await axios.post(
+                `${API_BASE}/users/upload-text/${encodeURIComponent(userId)}/${encodeURIComponent(fileName)}`,
+                { text: editorText.text },
+                { headers: { "Content-Type": "application/json" } }
+            );
+
+            // Refresh docs
+            const listResp = await axios.get(
+                `${API_BASE}/users/documents/${encodeURIComponent(userId)}`,
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+
+            const docs = listResp.data.documents;
+            setDocuments(docs);
+
+            // Select the new doc
+            const newDoc = docs.find(d => d.doc_id === resp.data.doc_id);
+            if (newDoc) {
+                setSelectedId(newDoc.doc_id);
+                setViewMode("pdf");
+            }
+
+            // Reset modal + editor + feedback
+            setShowNameModal(false);
+            setNewDocName("");
+            setEditorText({ html: "", text: "" });
+            setCurrentFeedback(null);
+            setAiFeedback([]);
+            setExpanded([]);
+
+            alert("Document submitted successfully!");
+
+        } catch (err) {
+            console.error("Failed to submit text document:", err);
+            alert("Submission failed.");
+        }
+    };
+
+
     return (
         <div className="write-editor-container">
             <aside className="writing-list">
@@ -157,9 +242,21 @@ const Write = () => {
                         <button
                             className="icon-btn"
                             onClick={() => {
+                                if (selectedId && currentFeedback) {
+                                    setFeedbackCache(prev => ({
+                                        ...prev,
+                                        [selectedId]: currentFeedback
+                                    }));
+                                }
+
                                 setSelectedId(null);
                                 setPdfUrl(null);
+
                                 setViewMode("editor");
+
+                                setCurrentFeedback(null);
+                                setAiFeedback([]);
+                                setExpanded([]);
                             }}
                             onMouseEnter={() => setShowNewTooltip(true)}
                             onMouseLeave={() => setShowNewTooltip(false)}
@@ -199,7 +296,21 @@ const Write = () => {
                     <div
                         key={doc.doc_id}
                         className={`writing-list-item${selectedId === doc.doc_id ? " selected" : ""}`}
-                        onClick={() => setSelectedId(doc.doc_id)}
+                        onClick={() => {
+                            if (selectedId && currentFeedback) {
+                                setFeedbackCache(prev => ({
+                                    ...prev,
+                                    [selectedId]: currentFeedback
+                                }));
+                            }
+
+                            setSelectedId(doc.doc_id);
+                            setViewMode("pdf");
+
+                            const cached = feedbackCache[doc.doc_id];
+                            setCurrentFeedback(cached || null);
+                            setAiFeedback(cached || []);
+                        }}
                         style={{ position: "relative" }}
                     >
                         <span className="writing-title">{doc.file_name}</span>
@@ -225,7 +336,7 @@ const Write = () => {
 
             <main className="writing-editor">
                 {viewMode === "editor" ? (
-                    <RichTextEditor />
+                    <RichTextEditor onChange={(val) => setEditorText(val)} />
                 ) : (
                     pdfUrl ? (
                         <iframe
@@ -239,32 +350,47 @@ const Write = () => {
             </main>
 
             <aside className="writing-advice">
-                <h2 style={{ color: "#fff" }}>Feedback</h2>
-                <div className="advice-placeholder">
-                    {sampleFeedback.map((fb, idx) => (
-                        <div
-                            key={idx}
-                            className="feedback-entry"
+                <div className="feedback-header-row">
+                    <h2 style={{ color: "#fff" }}>Feedback</h2>
+                    {selectedId && (
+                        <button
+                            className="get-feedback-btn"
+                            onClick={handleGetFeedback}
+                            disabled={feedbackLoading}
                         >
+                            {feedbackLoading ? "Loading..." : "Get Feedback"}
+                        </button>
+                    )}
+
+                </div>
+                <div className="advice-placeholder">
+                    {aiFeedback.map((fb, idx) => (
+                        <div key={idx} className="feedback-entry">
                             <button
                                 className="feedback-title"
                                 onClick={() => toggleExpand(idx)}
                                 aria-expanded={expanded.includes(idx)}
                             >
-                                {fb.title}
-                                <span
-                                    className={`feedback-arrow${expanded.includes(idx) ? " expanded" : ""}`}
-                                >
+                                {fb.category_label || fb.title}
+                                <span className={`feedback-arrow${expanded.includes(idx) ? " expanded" : ""}`}>
                                     ▶
                                 </span>
                             </button>
                             {expanded.includes(idx) && (
                                 <div className="feedback-details">
-                                    {fb.details}
+                                    {fb.suggestion || fb.details}
                                 </div>
                             )}
                         </div>
                     ))}
+                    {viewMode === "editor" && hasRealText && (
+                        <button
+                            className="submit-doc-btn"
+                            onClick={() => setShowNameModal(true)}
+                        >
+                            Submit Document
+                        </button>
+                    )}
                 </div>
             </aside>
             {showDeleteModal && (
@@ -279,6 +405,42 @@ const Write = () => {
                             </button>
                             <button className="modal-btn confirm" onClick={confirmDelete}>
                                 Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showNameModal && (
+                <div className="modal-overlay">
+                    <div className="modal-card submit-doc-modal">
+                        <h3>Name Your Document</h3>
+
+                        <input
+                            type="text"
+                            className="modal-input large-input"
+                            placeholder="Enter document name..."
+                            value={newDocName}
+                            onChange={(e) => setNewDocName(e.target.value)}
+                            autoFocus
+                        />
+
+                        <div className="modal-buttons">
+                            <button
+                                className="modal-submit-green"
+                                disabled={newDocName.trim() === ""}
+                                onClick={submitText}
+                            >
+                                Submit
+                            </button>
+
+                            <button
+                                className="modal-cancel"
+                                onClick={() => {
+                                    setShowNameModal(false);
+                                    setNewDocName("");
+                                }}
+                            >
+                                Cancel
                             </button>
                         </div>
                     </div>

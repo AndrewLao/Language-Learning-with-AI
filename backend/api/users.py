@@ -1,7 +1,17 @@
-from fastapi import Response, APIRouter, UploadFile, HTTPException, Depends, Request, Query
+from fastapi import (
+    Response,
+    APIRouter,
+    UploadFile,
+    HTTPException,
+    Depends,
+    Request,
+    Query,
+)
 from fastapi.responses import FileResponse
 from datetime import datetime
 from pymongo import ReturnDocument
+from urllib.parse import quote
+
 from models.userschema import (
     UserProfile,
     UserProfileCreate,
@@ -9,12 +19,11 @@ from models.userschema import (
     ChatSession,
     Message,
     QuizPost,
-
 )
 from typing import List, Optional
 from pathlib import Path
 import tempfile
-import  uuid
+import uuid
 from pypdf import PdfReader
 import io
 from fpdf import FPDF
@@ -23,23 +32,41 @@ from pathlib import Path
 
 router = APIRouter()
 
+
+ALLOWED_PREFERENCES = {
+    "movies",
+    "games",
+    "anime",
+    "travel",
+    "technology",
+    "outdoors",
+    "podcasts",
+    "books",
+    "music",
+    "fitness",
+    "cooking",
+    "art",
+    "pets",
+    "photography",
+}
+
+
 def text_to_pdf_bytes(text: str) -> bytes:
     pdf = FPDF()
     pdf.add_page()
-    # pdf.set_font("Arial", size=12)
-    # Register a Unicode TrueType font that supports Vietnamese
-    font_path = Path(__file__).parent / "dejavu-sans.ttf"
-    pdf.add_font("DejaVu", "", str(font_path), uni=True)
+
+    # Load TrueType Unicode font
+    font_path = Path(__file__).parent / "fonts" / "DejaVuSans.ttf"
+    pdf.add_font("DejaVu", "", font_path.as_posix(), uni=True)
     pdf.set_font("DejaVu", "", 12)
 
-    # for line in (text or "").splitlines() or [""]:
-    #     pdf.cell(0, 10, txt=line, ln=1)
+    # Write text (Unicode OK)
     pdf.multi_cell(w=0, h=8, txt=text)
 
-    # dest="S" returns the PDF as a Latin‑1 encoded string in fpdf 1.x
-    pdf_str = pdf.output(dest="S")          # type: ignore
-    pdf_bytes = pdf_str.encode("latin1")    # convert to bytes
+    # Output as a *byte string*, not str
+    pdf_bytes = pdf.output(dest="S").encode("latin1", "ignore")
     return pdf_bytes
+
 
 def get_db_fs(request: Request):
     return request.app.state.db, request.app.state.fs
@@ -161,6 +188,8 @@ def get_score_streak(user_id: str, db_fs=Depends(get_db_fs)):
 # Chat Session Management
 # Endpoints: (1) create new chat session (2) save a new turn in chat session (3) list all chat sessions for a user (4) retrieve a specific chat session
 # """
+
+
 # (1) create new chat session
 @router.post("/chats", response_model=ChatSession, status_code=201)
 def create_new_chat(
@@ -285,7 +314,9 @@ async def upload_document(user_id: str, file: UploadFile, db_fs=Depends(get_db_f
 
     # Extract text from the in-memory bytes
     reader = PdfReader(io.BytesIO(pdf_bytes))
-    text = "".join(page.extract_text() or "" for page in reader.pages)  # plain text [web:22]
+    text = "".join(
+        page.extract_text() or "" for page in reader.pages
+    )  # plain text [web:22]
 
     # Save metadata
     doc_id = str(uuid.uuid4())
@@ -303,9 +334,12 @@ async def upload_document(user_id: str, file: UploadFile, db_fs=Depends(get_db_f
     )
     return {"doc_id": doc_id, "file_name": file.filename, "text": text}
 
-# Upload text document (convert to PDF and store)   
+
+# Upload text document (convert to PDF and store)
 @router.post("/upload-text/{user_id}/{file_name}")
-async def upload_text_document(user_id: str, file_name: str, payload: dict, db_fs=Depends(get_db_fs)):
+async def upload_text_document(
+    user_id: str, file_name: str, payload: dict, db_fs=Depends(get_db_fs)
+):
     db, fs = db_fs
     text = payload["text"]
 
@@ -351,29 +385,21 @@ def download_document(user_id: str, doc_id: str, db_fs=Depends(get_db_fs)):
         raise HTTPException(status_code=404, detail="Document not found")
 
     gridout = fs.get(doc["gridfs_id"])
-    pdf_bytes = gridout.read()  # bytes from GridFS
+    pdf_bytes = gridout.read()
+
+    original_name = doc["file_name"]
+    ascii_fallback = "document.pdf"
+    utf8_name = quote(original_name)
+
+    content_disposition = (
+        f"attachment; filename=\"{ascii_fallback}\"; filename*=UTF-8''{utf8_name}"
+    )
 
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={
-            "Content-Disposition": f'attachment; filename="{doc["file_name"]}"'
-        },
+        headers={"Content-Disposition": content_disposition},
     )
-    # tmp_path = Path(tempfile.gettempdir()) / doc["file_name"]
-    # with open(tmp_path, "wb") as f:
-    #     f.write(gridout.read())
-    # return FileResponse(tmp_path, filename=doc["file_name"])
-
-# Retrieve a specific document's content
-@router.get("/documents/{user_id}/{doc_id}/text")
-def download_document(user_id: str, doc_id: str, db_fs=Depends(get_db_fs)):
-    db, fs = db_fs
-    doc = db.user_documents.find_one({"user_id": user_id, "doc_id": doc_id},
-                                     {"_id": 0, "text_extracted": 1, "file_name": 1})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
-    return doc
 
 
 # Delete a specific document
@@ -408,8 +434,9 @@ def submit_quiz(payload: QuizPost, db_fs=Depends(get_db_fs)):
     return {
         "success": True,
         "quiz_id": payload.quiz_id,
-        "message": "Quiz stored successfully"
+        "message": "Quiz stored successfully",
     }
+
 
 @router.get("/quiz/{user_id}", response_model=List[QuizPost])
 def get_user_quizzes(user_id: str, db_fs=Depends(get_db_fs)):
@@ -424,3 +451,60 @@ def get_user_quizzes(user_id: str, db_fs=Depends(get_db_fs)):
     )
 
     return quizzes
+
+
+# Preferences
+
+
+@router.get("/preferences/{user_id}")
+def get_user_preferences(user_id: str, db_fs=Depends(get_db_fs)):
+    db, _ = db_fs
+
+    profile = db.user_profiles.find_one(
+        {"user_id": user_id}, {"_id": 0, "preferences": 1}
+    )
+
+    if not profile:
+        raise HTTPException(status_code=404, detail="User profile not found")
+
+    prefs = profile.get("preferences", [])
+    return {"user_id": user_id, "preferences": prefs}
+
+
+@router.patch("/preferences/{user_id}")
+def update_user_preferences(user_id: str, payload: dict, db_fs=Depends(get_db_fs)):
+    db, _ = db_fs
+
+    prefs = payload.get("preferences")
+
+    if prefs is None or not isinstance(prefs, list):
+        raise HTTPException(status_code=400, detail="Preferences must be a list")
+
+    normalized = []
+    for p in prefs:
+        if not isinstance(p, str):
+            raise HTTPException(status_code=400, detail=f"Invalid preference type: {p}")
+        key = p.strip().lower()
+        if key not in ALLOWED_PREFERENCES:
+            raise HTTPException(status_code=400, detail=f"Invalid preference: {p}")
+        normalized.append(key)
+
+    normalized = list(dict.fromkeys(normalized))
+
+    bool_prefs = {k: (k in normalized) for k in ALLOWED_PREFERENCES}
+
+    update_data = {
+        "preferences": normalized,
+        "preferences_object": bool_prefs,  # optional but useful for agent
+    }
+
+    updated = db.user_profiles.find_one_and_update(
+        {"user_id": user_id},
+        {"$set": update_data},
+        return_document=ReturnDocument.AFTER,
+    )
+
+    if not updated:
+        raise HTTPException(status_code=404, detail="User profile not found")
+
+    return {"user_id": user_id, "preferences": normalized}

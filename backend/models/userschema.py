@@ -33,7 +33,7 @@ class UserProfile(BaseModel):
     email: EmailStr
     last_seen: Optional[datetime] = None
     score_streak: int = 0
-    preferences: "UserPreferences" = Field(default_factory=lambda: UserPreferences())
+    preferences: List[str] = Field(default_factory=list)
     documents: List[UserDocument] = Field(default_factory=list)
 
 

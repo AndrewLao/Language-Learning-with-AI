@@ -3,11 +3,11 @@ from fastapi import APIRouter
 from langgraph.graph import StateGraph, END, START
 from langchain_openai import ChatOpenAI
 from services.rag_store_qdrant import query_qdrant
-from models.userschema import  SimpleMessageResponse
 import os
 from pymongo import MongoClient
 import time
 import json
+from api.miscellanous import normalize_llm_response
 
 load_dotenv()
 
@@ -29,7 +29,10 @@ class AgentState(dict):
 class ManagerAgent:
     def __init__(self, llm_model="gpt-5"):
         self.agents = {"general_agent": self.general_agent}
-        self.llm = ChatOpenAI(model=llm_model)
+        self.llm = ChatOpenAI(
+            model=llm_model,
+            reasoning={"effort": "low"} 
+        )
         self.mongo_client = MongoClient(os.environ.get("ATLAS_URI"))
 
         self.graph = self.build_graph()
@@ -53,7 +56,7 @@ class ManagerAgent:
         conv = conversation_store.setdefault(chat_id, {"questions_asked": 0, "answers_given": 0, "score": 0, "last_question": None, "finished": False})
 
         resp = self.llm.invoke(prompt)
-        question_text = resp.content.strip()
+        question_text = normalize_llm_response(resp.content).strip()
 
         # Store the generated question and increment count
         conv["questions_asked"] = conv.get("questions_asked", 0) + 1
@@ -151,10 +154,7 @@ def invoke_agent(payload: dict):
     input_string = payload.get("input_string", "")
 
     state = agent.invoke(user_id, chat_id, input_string)
-   
-    response_text = (
-        state.get("response")
-        if isinstance(state, dict)
-        else getattr(state, "response", "")
-    )
+
+    response_text = normalize_llm_response(state.get("response", ""))
+
     return json.loads(response_text)

@@ -1,8 +1,22 @@
 import React, { useRef } from "react";
 import "./RichTextEditor.css";
 
-const RichTextEditor = () => {
+const RichTextEditor = ({ onChange }) => {
     const editorRef = useRef(null);
+
+    const emitChange = () => {
+        if (!onChange || !editorRef.current) return;
+
+        const html = editorRef.current.innerHTML;
+
+        // Strip tags for "real text" detection
+        const text = html.replace(/<[^>]+>/g, "").trim();
+
+        onChange({
+            html,
+            text
+        });
+    };
 
     // Example: Bold
     const handleBold = () => {
@@ -79,6 +93,8 @@ const RichTextEditor = () => {
                 sel.removeAllRanges();
                 sel.addRange(range);
             }
+            emitChange();
+
         }
     };
 
@@ -141,6 +157,8 @@ const RichTextEditor = () => {
                 ref={editorRef}
                 suppressContentEditableWarning={true}
                 onKeyDown={handleKeyDown}
+                onKeyUp={emitChange}
+                onInput={emitChange}
                 spellCheck={true}
             ></div>
         </div>

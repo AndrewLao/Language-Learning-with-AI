@@ -40,7 +40,7 @@ app.add_middleware(
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(agents.router, prefix="/agent", tags=["Agent"])
 app.include_router(testingAgent.router, prefix="/test", tags=["Testing"])
-app.include_router(writingAgent.router, prefix="/test", tags=["Testing"])
+app.include_router(writingAgent.router, prefix="/writing", tags=["Writing"])
 
 @app.get("/")
 def health_check():
