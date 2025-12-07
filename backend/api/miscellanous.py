@@ -146,20 +146,43 @@ def load_user_preferences(user_id: str) -> str:
     
 def normalize_llm_response(resp_content):
     """
-    Ensures LLM output is always converted into a clean string.
-    Supports:
-    - direct strings
-    - new OpenAI structured outputs (list of {type: 'text', text: ...})
-    - fallback types
+    Converts LangChain 1.x content blocks into a clean string.
+    Handles:
+    - reasoning blocks (ignored)
+    - text blocks (returned)
+    - lists of blocks
+    - dict content blocks
+    - plain strings
     """
+
+    # Case 1: Already a raw string
     if isinstance(resp_content, str):
         return resp_content
 
+    # Case 2: List of content blocks
     if isinstance(resp_content, list):
         parts = []
         for block in resp_content:
-            if isinstance(block, dict) and block.get("type") == "text":
-                parts.append(block.get("text", ""))
-        return "\n".join(parts)
+            if not isinstance(block, dict):
+                continue
 
+            block_type = block.get("type")
+
+            # Ignore chain-of-thought blocks
+            if block_type == "reasoning":
+                continue
+
+            # Extract user-visible text blocks
+            if block_type == "text":
+                parts.append(block.get("text", ""))
+
+        return "\n".join(parts).strip()
+
+    # Case 3: Single dict content block
+    if isinstance(resp_content, dict):
+        if resp_content.get("type") == "text":
+            return resp_content.get("text", "")
+        return str(resp_content)
+
+    # Fallback
     return str(resp_content)
