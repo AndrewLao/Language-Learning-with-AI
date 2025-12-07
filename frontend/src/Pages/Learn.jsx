@@ -184,6 +184,7 @@ const Learn = () => {
                                 loadingOlder={loadingOlder}
                                 fullyLoaded={fullyLoaded}
                                 onScrollTop={() => fetchMessages(false)}
+                                resetScrollToken={selectedChat}
                             />
                             <LearnTextBox onSend={handleSend} loading={loading} />
                         </>
