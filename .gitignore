@@ -5,3 +5,4 @@ __pycache__/
 .vscode
 backend/.env
 backend/.env
+backend/api/fonts/*.pkl

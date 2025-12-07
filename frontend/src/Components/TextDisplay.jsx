@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 
-const TextDisplay = ({ messages, onScrollTop, loadingOlder, fullyLoaded, assistantName = "Agent" }) => {
+const TextDisplay = ({ messages, onScrollTop, loadingOlder, fullyLoaded, assistantName = "Agent", resetScrollToken }) => {
     const wrapperRef = useRef(null);
     const bottomRef = useRef(null);
 
@@ -34,14 +34,8 @@ const TextDisplay = ({ messages, onScrollTop, loadingOlder, fullyLoaded, assista
     useLayoutEffect(() => {
         const div = wrapperRef.current;
         if (!div) return;
-        prevHeightRef.current = div.scrollHeight;
-    }, [messages]);
 
-    useLayoutEffect(() => {
-        const div = wrapperRef.current;
-        if (!div) return;
-
-        if (!loadingOlderRef.current) return;
+        if (!loadingOlderRef.current || initialLoadRef.current) return;
 
         const heightDiff = div.scrollHeight - prevHeightRef.current;
         div.scrollTop = prevScrollTopRef.current + heightDiff;
@@ -53,9 +47,7 @@ const TextDisplay = ({ messages, onScrollTop, loadingOlder, fullyLoaded, assista
         const div = wrapperRef.current;
         if (!div) return;
 
-        const firstLoadAndHasMessages = initialLoadRef.current && messages.length > 0;
-
-        if (firstLoadAndHasMessages) {
+        if (initialLoadRef.current && messages.length > 0) {
             autoScrollingRef.current = true;
             requestAnimationFrame(() => {
                 bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -76,6 +68,17 @@ const TextDisplay = ({ messages, onScrollTop, loadingOlder, fullyLoaded, assista
             bottomRef.current?.scrollIntoView({ behavior: "smooth" });
         }
     }, [messages]);
+
+    useEffect(() => {
+        initialLoadRef.current = true;
+        loadingOlderRef.current = false;
+        prevHeightRef.current = 0;
+        prevScrollTopRef.current = 0;
+
+        requestAnimationFrame(() => {
+            bottomRef.current?.scrollIntoView({ behavior: "auto" });
+        });
+    }, [resetScrollToken]);
 
     const getSpeakerName = (role) => {
         return role === "User" ? "You" : assistantName;

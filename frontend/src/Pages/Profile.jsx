@@ -40,28 +40,37 @@ const Profile = () => {
 
     // Load Settings Data
     useEffect(() => {
-        async function fetchProfile() {
+        async function fetchData() {
             try {
-                const resp = await axios.get(
-                    `${API_BASE}/users/profiles/${encodeURIComponent(userId)}`,
-                    { headers: { 'Content-Type': 'application/json' } }
+                const profileResp = await axios.get(
+                    `${API_BASE}/users/profiles/${encodeURIComponent(userId)}`
                 );
+
                 setProfile({
-                    name: resp.data.username,
-                    email: resp.data.email
+                    name: profileResp.data.username,
+                    email: profileResp.data.email
                 });
 
-                setStreak(resp.data.score_streak);
+                setStreak(profileResp.data.score_streak);
 
-                // if (resp.data.preferences) {
-                //     setSelectedPrefs(resp.data.preferences);
-                //     setPrefDraft(resp.data.preferences);
-                // }
+                const prefResp = await axios.get(
+                    `${API_BASE}/users/preferences/${encodeURIComponent(userId)}`
+                );
+
+                // Normalize lowercase backend → Capitalized UI
+                const prefs = (prefResp.data.preferences || []).map(p =>
+                    p.charAt(0).toUpperCase() + p.slice(1)
+                );
+
+                setSelectedPrefs(prefs);
+                setPrefDraft(prefs);
+
             } catch (err) {
-                console.error(err);
+                console.error("Failed to load profile or preferences", err);
             }
         }
-        fetchProfile();
+
+        fetchData();
     }, []);
 
     const startEdit = (field) => {
@@ -111,9 +120,21 @@ const Profile = () => {
         }
     };
 
-    const savePrefs = () => {
-        setSelectedPrefs(prefDraft);
-        setEditingPrefs(false);
+    const savePrefs = async () => {
+        try {
+            // Send to backend API
+            await axios.patch(
+                `${API_BASE}/users/preferences/${encodeURIComponent(userId)}`,
+                { preferences: prefDraft.map(p => p.toLowerCase()) }
+            );
+
+            setSelectedPrefs(prefDraft);
+            setEditingPrefs(false);
+
+        } catch (err) {
+            console.error("Failed to update preferences:", err);
+            alert("Could not save preferences");
+        }
     };
 
     const cancelPrefs = () => {
@@ -126,26 +147,6 @@ const Profile = () => {
 
             <div className="settings-card">
                 <h1>User Profile</h1>
-
-                {/* <div className="setting-row">
-                    <img src={profile.picture} className="profile-pic" />
-                    {editing === "picture" ? (
-                        <div className="edit-block">
-                            <input
-                                type="text"
-                                placeholder="Image URL"
-                                value={form.picture}
-                                onChange={(e) => setForm({ ...form, picture: e.target.value })}
-                            />
-                            <div className="btn-row">
-                                <button onClick={handleSaveChanges}>Save</button>
-                                <button onClick={cancelEdit}>Cancel</button>
-                            </div>
-                        </div>
-                    ) : (
-                        <button onClick={() => startEdit("picture")}>Change</button>
-                    )}
-                </div> */}
 
                 <h2>Name</h2>
                 <div className="setting-row">
@@ -173,34 +174,6 @@ const Profile = () => {
                 <div className="setting-row">
                     <span>{profile.email}</span>
                 </div>
-                {/* <h2>Email</h2>
-                <div className="setting-row">
-                    {editing === "email" ? (
-                        <div className="edit-block">
-                            <input
-                                type="email"
-                                placeholder="New email"
-                                value={form.email}
-                                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                            />
-                            <input
-                                type="email"
-                                placeholder="Confirm new email"
-                                value={emailConfirm}
-                                onChange={(e) => setEmailConfirm(e.target.value)}
-                            />
-                            <div className="btn-row">
-                                <button onClick={handleSaveChanges}>Save</button>
-                                <button onClick={cancelEdit}>Cancel</button>
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            <span>{profile.email}</span>
-                            <button onClick={() => startEdit("email")}>Edit</button>
-                        </>
-                    )}
-                </div> */}
                 <h2>Daily Streak</h2>
                 <div className="setting-row">
                     <span style={{fontSize: '2em'}}>{streak} 🔥</span>
