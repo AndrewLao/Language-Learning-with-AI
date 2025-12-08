@@ -80,9 +80,17 @@ const Quiz = () => {
                 chat_id: "quiz-session"
             });
 
-            if (!Array.isArray(res.data)) throw new Error("Invalid LLM JSON.");
+            const payload = (typeof res.data === "string")
+                ? JSON.parse(res.data)
+                : res.data;
 
-            const normalized = res.data.map((q, idx) => ({
+            const list = payload?.questions || [];
+
+            if (!Array.isArray(list)) {
+                throw new Error("Invalid LLM JSON format — 'questions' must be an array.");
+            }
+
+            const normalized = list.map((q, idx) => ({
                 id: idx + 1,
                 question: q.question || "",
                 answer: q.answer?.toLowerCase() === "yes" ? "yes" : "no",

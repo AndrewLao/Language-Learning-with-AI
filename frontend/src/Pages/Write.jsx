@@ -163,14 +163,14 @@ const Write = () => {
                 doc_id: selectedId
             });
 
-            const feedbackArray = Array.isArray(resp.data) ? resp.data : [];
+            const suggestions = resp.data?.suggestions || [];
 
-            setCurrentFeedback(feedbackArray);
-            setAiFeedback(feedbackArray);
+            setCurrentFeedback(suggestions);
+            setAiFeedback(suggestions);
 
             setFeedbackCache(prev => ({
                 ...prev,
-                [selectedId]: feedbackArray
+                [selectedId]: suggestions
             }));
 
         } catch (err) {
