@@ -16,4 +16,4 @@ fpdf==1.7.2
 python-dotenv==1.0.1
 python-multipart==0.0.9
 typing-extensions==4.12.2
-email_validator==2.2.0
+email-validator==2.2.0
