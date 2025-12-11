@@ -31,11 +31,16 @@ const ChatList = ({
     selectedChat,
     setSelectedChat = () => { },
     setChats = () => { },
-    userId = localStorage.getItem('cognitoSub') || 'test_user'
 }) => {
 
     const [realChats, setRealChats] = useState([]);
     const [loadingInitial, setLoadingInitial] = useState(true);
+    const [userId, setUserId] = useState(null);
+
+    useEffect(() => {
+        const stored = localStorage.getItem('cognitoSub');
+        setUserId(stored || 'test_user');
+    }, []);
 
     const lessonChats = [
         ...realChats
@@ -94,8 +99,9 @@ const ChatList = ({
     };
 
     useEffect(() => {
+        if (!userId) return;
         fetchChats();
-    }, []);
+    }, [userId]);
 
     const handleSelectChat = async (chat) => {
         // Normal chat

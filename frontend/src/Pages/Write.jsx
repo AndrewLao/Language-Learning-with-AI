@@ -4,8 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import RichTextEditor from "../Components/RichTextEditor"
 
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
-const userId = localStorage.getItem('cognitoSub') || 'test_user';
-
 
 const Write = () => {
     // General utilities
@@ -37,7 +35,14 @@ const Write = () => {
     const [showNameModal, setShowNameModal] = useState(false);
     const [newDocName, setNewDocName] = useState("");
 
+    const [userId, setUserId] = useState(null);
+
     const hasRealText = editorText.text.trim().length > 0;
+
+    useEffect(() => {
+        setUserId(localStorage.getItem('cognitoSub') || 'test_user');
+    }, []);
+
 
     const toggleExpand = (idx) => {
         setExpanded(expanded =>
@@ -48,6 +53,7 @@ const Write = () => {
     };
 
     useEffect(() => {
+        if (!userId) return;
         async function fetchDocuments() {
             try {
                 const resp = await axios.get(
@@ -67,7 +73,7 @@ const Write = () => {
         }
 
         fetchDocuments();
-    }, []);
+    }, [userId]);
 
     useEffect(() => {
         async function fetchPdf() {
@@ -163,7 +169,9 @@ const Write = () => {
                 doc_id: selectedId
             });
 
-            const suggestions = resp.data?.suggestions || [];
+            const suggestions = Array.isArray(resp.data?.suggestions)
+                ? resp.data.suggestions
+                : [];
 
             setCurrentFeedback(suggestions);
             setAiFeedback(suggestions);

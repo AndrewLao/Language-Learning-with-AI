@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
-const userId = localStorage.getItem('cognitoSub') || 'test_user';
 
 const defaultPrefs = [
     "Movies",
@@ -27,6 +26,7 @@ const Profile = () => {
         name: ".....",
         email: ".....",
     });
+    const [userId, setUserId] = useState(null);
 
     const [editing, setEditing] = useState(null);
     const [form, setForm] = useState({});
@@ -37,9 +37,15 @@ const Profile = () => {
     const [editingPrefs, setEditingPrefs] = useState(false);
     const [streak, setStreak] = useState(0);
 
+    useEffect(() => {
+        const id = localStorage.getItem("cognitoSub");
+        if (id) setUserId(id);
+        else setUserId("test_user");
+    }, []);
 
     // Load Settings Data
     useEffect(() => {
+        if (!userId) return;
         async function fetchData() {
             try {
                 const profileResp = await axios.get(
@@ -71,7 +77,7 @@ const Profile = () => {
         }
 
         fetchData();
-    }, []);
+    }, [userId]);
 
     const startEdit = (field) => {
         setEditing(field);
