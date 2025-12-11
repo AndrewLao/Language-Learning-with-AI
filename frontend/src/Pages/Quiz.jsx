@@ -13,7 +13,12 @@ const builtInQuizzes = [
 ];
 
 const Quiz = () => {
-    const userId = localStorage.getItem("cognitoSub") || "test_user";
+    const [userId, setUserId] = useState(null);
+
+    useEffect(() => {
+        const id = localStorage.getItem("cognitoSub");
+        setUserId(id || "test_user");
+    }, []);
 
     // Mode tracking
     const [mode, setMode] = useState("menu"); // menu | active | review
@@ -55,8 +60,9 @@ const Quiz = () => {
     };
 
     useEffect(() => {
+        if (!userId) return;
         loadPastQuizzes();
-    }, []);
+    }, [userId]);
 
     // Create quiz
     const loadQuiz = async () => {
