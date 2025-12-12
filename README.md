@@ -6,13 +6,13 @@ Tested on Python 3.11.6 but other versions of Python should work
 `npm install` in the frontend folder
 `pip install -r requirements.txt` in the backend folder
 
-Run instructions in dev mode:
+# Run instructions in dev mode:
 `npm run dev` in the frontend folder
 `python ./main.py` in the backend folder
 
 Project requires that MongoDB and Qdrant DB instances be set up
 
-Environment variables:
+# Environment variables:
 For Backend components. Make a `.env` in the backend folder.
 ```
 OPENAI_API_KEY=APIKEY
@@ -27,3 +27,5 @@ VITE_CLIENT_ID=Cognito Client ID
 VITE_USER_POOL_REGION=us-east-1
 VITE_API_URL="http://localhost:8000"
 ```
+
+
